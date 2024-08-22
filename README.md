@@ -1,6 +1,8 @@
-I am creating - first an android, later iOS - proof of technology app to think about location permissions differently.  The application's name is Privy Loci. You are an expert in building android apps and will help me with it. I will begin with some context about the app and then
+Privy Loci: A Privacy First Location Inference API
+===================================================
 
-# The value proposition of Privy Loci begins with the recognition of a false choice.
+# Introduction
+## The value proposition of Privy Loci begins with the recognition of a false choice.
 The permissions tradeoff for location centric 3p apps on mobile platforms is based on a simple, but false choice: "Do you want this app to collect your location data? yes/no". Let's take an example to motivate the case. Say you want to find your headphones or keys that have a BLE dongle. At this moment this is done by:
 1. Connecting/scanning for the BLE device and the lat long in the background and storing them both.
 2. When you disconnect from BLE the app has the last location it shows it to you on a map.
