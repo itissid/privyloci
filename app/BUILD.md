@@ -1,9 +1,11 @@
 
 # How am I proceeding about this build:
 
-1. I will list out the Requirements for the application I am building.
-2. Next, I want to create an Android Project for which you will help me design the basic services.
-3. Once and only once built I want to properly message out and find a home for this app. I want it to be supported in away it can remain open to its original mission of protecting a user's privacy. Institutional or activist support would be useful.
+0. First the usecases I can think of, with some examples
+1. Next, I will list out the core Requirements for the application I am building.
+2. I will build swimlane diagrams for the core requirements.
+3. A roadmap with the datamodel and some of the key code components to build.
+4. Once and only once built I want to properly message out and find a home for this app. I want it to be supported in away it can remain open to its original mission of protecting a user's privacy. Institutional or hackivist support.
 
 ---------------------------------------------
 
@@ -26,7 +28,6 @@
     6. There could be many more exciting usecases based on advanced algorithms running on device. 
 
 # Requirements
-
 
 ### 1. Functional and Non-Functional Requirements
 
@@ -119,14 +120,61 @@
     - Modular design for features like encryption settings, data export, and advanced privacy controls.
 
 
-### 3. Roadmap to Proof of Technology (PoT)
+### 3. Roadmap to Proof of Technology (PoT)(WIP)
 
 #### **Phase 1: Core Functionality (PoT)**
-1. **Privacy Surface for Subscription Management**
-2. **Event-Based Subscription Management**
-3. **BLE Asset Tracking**
-4. **Basic Logs Display**
-5. **User-Defined Places/Tags Management**
+1. **User-Defined Places/Tags Management**
+    - Components: Data model, A place/tag management activity.
+      - place_tag_id, place_tag_name, place_tag_type, Place_tag_metadata, Created_At, is_active.
+      
+    - Asset Tracking Tag: Foreground Wifi and BLE scanning permission for asset tracking.
+    - Place Tag: Map tile and GPS location display for Lat/Long based place.
+    - 
+2. **User-Defined Subscription Management**
+    - Components: 
+      - Data model(reused by 3p apps):
+        - To track the subscriptions itself:
+          - app_user_id, is_user_subscription, subcription_id, event_type, place_tag_id, created_at, is_active
+          - Primary Key to identify a subscription is (app_user_id, event_type, place_tag_id)
+        - To track the state of the subscription based on the event type we need to have different tables, specified below.
+        - The subscription relates to an event using the subscription_id:
+          - If there is no subscription for that app present 
+        - API:
+          - Create or delete a subscription. 
+      - SMD and FLP. 
+      - Persistent and encrypted state tracking algorithm.
+    - Events supported: 
+      - ARRIVE_AT_PLACE, LEAVE_PLACE, TRACK_BLE_ASSET, DISPLAY_MAP_TILE, QIBLA_DIRECTION_PRAYER_TIME.
+    - For geofence enter/exit state management logic: 
+      - Components: 
+        - Data model:
+          - 
+          - subscription_id, geofence_center, geofence_radius,   
+        - Map based selection interface.
+        - Initialization of state for geofence and user for this event.
+        - If there is subscription created implement an SMD interface to figure out when to collect location. 
+        
+      - First Algorithm Design(TODO: Flesh this out): 
+        - Create Simple circular geofence with some arbitrary radius. 
+        - Use SMD to figure out when to collect location using FLP.
+        - Store a state of the user for the geofence and trigger based on change in state.
+        - Add robustness by taking a moving average of the user's location with previous ones if the current location is < 10m of the geofence.
+      - Future Enhancements:
+        - Battery Opt: Consider implementing dwell time logic or something like " > 10 miles" logic to collect location update at a lower frequency.
+        - Consider instead of SMD logic to collect locations more frequently when the user is moving and less frequently when the user is stationary. 
+        - Privacy preserving: Experiment with Wifi/BLE signals and remove precise lat/long inference. 
+          - Advantage: Wifi/BLE classifier is possibly as privacy preserving if not more than lat/long inference. User can have a private wifi/ble beacon at these places.
+          - If Wifi/BLE is strong enough when user enters geo-fence, consider using wifi and geo location in a naive bayes classifier setting to classify in/out instead.
+    - For BLE Asset tracking logic(asset can connect or disconnect):
+      - Add enum type for 
+
+
+3. **3p App-Based Subscription Management**
+    - Components: 
+      - New Enum type in 
+4. **Privacy Surface for Subscription Management**
+5. **BLE Asset Tracking**
+6. **Basic Logs Display**
 
 #### **Phase 2: Enhanced Privacy Features**
 1. **Private Map Tile Display**

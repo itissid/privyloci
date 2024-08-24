@@ -1,5 +1,10 @@
 Privy Loci: A Privacy First Location Inference API
 ===================================================
+Privy Loci is an proposal for Privacy first Location *Inferences* with a Zero Trust model for users
+and it is a proposal for 3p apps that rely on location data to function.
+
+## TL;DR How does it work?
+It proposes a *separation* of the PII and sensitive location data from the *value* that apps add to your life. To think that the idea is not just do this inference on the device misses the point. The problem is deeply rooted in the location permissioning in major platforms as I explain below. This can be mitigated for a good number of apps to function while not letting users deal with the worry.
 
 # Introduction
 ## The value proposition of Privy Loci begins with the recognition of a false choice.
@@ -14,21 +19,23 @@ To go with an analogy, what most apps are forced to do is like asking a guy who 
 ## Why do I call it a false choice?
 To answer this, lets look a bit more at the specific choice you and app developers have today with location centric apps.
 
-For users: YOU ARE FORCED TO CRINGE or AVOID,  a `1/0` choice (TODO: Permission on major mobile OS's is to collect or not collect. Expound on the fact that Android/iOS offer apps to collect location in foreground or background or always. Cue creepy iOS map on where all this app has collected your location. But all these choices are still variations of the same false choice.). I have seen first hand how privacy teams function in large orgs and I can tell you that no one reads the disclosures in privacy statements. 
+1. For users: YOU ARE FORCED TO CRINGE or AVOID,  a `1/0` choice:
 
-Apps, even the good ones, are forced to exhibit creepy behaviour. (TODO: Apps with good intention or not *always* have to make a 1/0 choice between having a location or not, to function).  A lot of 3p applications(on android and iOS) build with features that rely on location don't need the actual lat/long, wifi SSID, ble SSID data to function. Many inferences can be made without collecting this data and shipping it off to servers. See the attached "Location Permission ambiguity in Android and iOS.pdf" for technical details of location permissioning on Android).
+    Permission on major mobile OS's is to collect or not collect. Expound on the fact that Android/iOS offer apps to collect location in foreground or background or always. (TODO: Cue creepy android/iOS map on where all this app has collected your location). But all these fine-grained permissions are still variations of the same false choice. I have seen first hand how privacy teams function in large orgs function and I can tell you that though well intentioned data misuse is rampant because these policies can be changed to provide "value".
 
-## What kind of problems it creates 
+2. For 3P-Apps, even the virtuous, privacy-conscious ones, are forced to exhibit creepy behaviour: 
 
-(TODO: Its not just that you don't get "value" from giving away location data  to big tech, bad as that is, you do get the very accurate Blue Dot and location services. But it is now being monopolized and the false choice has now led to the additional proliferation of location data beyond big tech to a myriad number of other players).
-Problems with this model happens way too often in this world, for example, how horrified were you when a Muslim Prayer app data was bought by the FBI for god know what[2] or family location tracker app's data leaked[3]. Suffice to say location management is a shit show. I would go so far as to say it is to the benefit of Googles, Apples, Samsungs of this world to keep this shit show running as long as they can collect data all day and other apps can't.
+   Apps with good intention or not almost *always* have to make a 1/0 choice between having a Location/Post data or not, to function. A lot of 3p applications(on android and iOS) build with features that rely on location don't need the actual lat/long, wifi SSID, BLE SSID data to function. Many inferences can be made without collecting this data and shipping it off to servers. 
 
-# Privy Loci: An alternative privacy first model for location inferences with a PoC.
-Privy Loci solves the problem of Privacy first Location *Inference* with a Zero Trust model.
+## What kind of problems it creates(WIP) 
+
+Its not just that you don't get "value" from giving away location data  to big tech, bad as that is, you do get the very accurate Blue Dot and location services. But it is now being monopolized and the false choice has now led to the additional proliferation of location data beyond major mobile platform OS providers to a myriad number of other smaller players.
+
+Problems with this model happens way too often in our world, for example, how horrified were you when you learned that a Muslim Prayer app data was bought by the FBI for god know what[2]? or that a family location tracker app's data leaked[3]? Suffice to say location management is a shit show. I would go so far as to say it is to the benefit of Googles, Apples, Samsungs of this world to keep this shit show running as long as they can collect data all day and other apps can't.
 
 ## What is a privacy first location inference?
 
-Note, I used the word Inferences not location data(accurate GPS position, IMU traces), I want to make clear that while current demo is demonstrating the API for protecting the privacy of the *inference* —  a higher order function like where is my BLE device? Are you home without telling the app where home is? —  it still needs all those mobile permissions to collect location data - that you don't like to give. The idea is to changes this, by spark a conversation about the permission structure and help create more private APIs. At this time all I can guarantee that all the location data collected by Privy Loci remains private and on device and encrypted on inception and never shipped to a server. 
+Note, I used the word Inferences not location data (accurate GPS position, IMU traces), I want to make clear that while current demo is demonstrating the API for protecting the privacy of the *inference* —  a higher order function like where is my BLE device? Are you home without telling the app where home is? —  it still needs all those mobile permissions to collect location data - that you don't like to give. The idea is to changes this, by spark a conversation about the permission structure and help create more private APIs. At this time all I can guarantee that all the location data collected by Privy Loci remains private and on device and encrypted on inception and never shipped to a server. 
 
 My proposal is based on two observations when I worked in this domain previously:
 
