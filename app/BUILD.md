@@ -9,6 +9,13 @@
 
 ---------------------------------------------
 
+# Summary
+- **Scope**: Demo of Privy Loci is a privacy-first location inference app that allows users to manage their location data and subscriptions to third-party apps.
+- **Usecases**: There are many. I will note ones I use. 
+- **Requirements**: The prioritized functional and non-functional requirements ensure that the core goals of Privy Loci are met.
+- **Documentation**: Categorizing documentation helps keep all the details organized, aiding in both current development and future maintenance.
+- **Roadmap**: The roadmap focuses on delivering a PoT first, then gradually enhancing the app with more features and refinements.
+
 # Scope of Privy Loci:
 0. It is intended to be adopted by willing apps to develop location features that are privacy first in terms of location info.
 1. PrivyLoci still needs access to regular location permissions for Android and iOS, it *will not* have a mock provider or bypass ACCESS_FINE_LOCATION, ACCESS_BACKGROUND_LOCATION in any way. It will instead provide strong guarantees through: Its privacy statement; it's not for profit commitment and institutional/activist support to provide a shield to never sell, collect or use this data in any which way for its own purposes outside of the user's own device.
@@ -25,7 +32,7 @@
 	3. It can tell an app when you are at home or at work or your favorite store.
 	4. It can tell where your connected headphones were last you left them.
     5. An app could display a bunch of random location pins on a private map tile surface.
-    6. There could be many more exciting usecases based on advanced algorithms running on device. 
+    6. There could be many more exciting usecases based on advanced algorithms running on device.
 
 # Requirements
 
@@ -124,57 +131,92 @@
 
 #### **Phase 1: Core Functionality (PoT)**
 1. **User-Defined Places/Tags Management**
-    - Components: Data model, A place/tag management activity.
-      - place_tag_id, place_tag_name, place_tag_type, Place_tag_metadata, Created_At, is_active.
+    - Components: 
+      - **Data model**, A place/tag management activity.
+        - `place_tag_id, place_tag_name, place_tag_type, place_tag_metadata, created_At, is_active`.
       
-    - Asset Tracking Tag: Foreground Wifi and BLE scanning permission for asset tracking.
-    - Place Tag: Map tile and GPS location display for Lat/Long based place.
-    - 
+      - Asset Tracking Tag: Foreground Wifi and BLE scanning permission for asset tracking.
+      - Place Tag: Map tile and GPS location display for Lat/Long based place.
 2. **User-Defined Subscription Management**
     - Components: 
       - Data model(reused by 3p apps):
         - To track the subscriptions itself:
-          - app_user_id, is_user_subscription, subcription_id, event_type, place_tag_id, created_at, is_active
-          - Primary Key to identify a subscription is (app_user_id, event_type, place_tag_id)
+          - `app_user_id, is_user_subscription, subcription_id, event_type, place_tag_id, created_at, is_active, expiration_dt`
+          - Primary Key to identify a subscription is `(app_user_id, event_type, place_tag_id, subscription_id)`.
         - To track the state of the subscription based on the event type we need to have different tables, specified below.
         - The subscription relates to an event using the subscription_id:
           - If there is no subscription for that app present 
         - API:
           - Create or delete a subscription. 
-      - SMD and FLP. 
+      - FLP with the algorithm. 
       - Persistent and encrypted state tracking algorithm.
     - Events supported: 
       - ARRIVE_AT_PLACE, LEAVE_PLACE, TRACK_BLE_ASSET, DISPLAY_MAP_TILE, QIBLA_DIRECTION_PRAYER_TIME.
-    - For geofence enter/exit state management logic: 
-      - Components: 
-        - Data model:
-          - 
-          - subscription_id, geofence_center, geofence_radius,   
-        - Map based selection interface.
-        - Initialization of state for geofence and user for this event.
-        - If there is subscription created implement an SMD interface to figure out when to collect location. 
-        
-      - First Algorithm Design(TODO: Flesh this out): 
-        - Create Simple circular geofence with some arbitrary radius. 
-        - Use SMD to figure out when to collect location using FLP.
-        - Store a state of the user for the geofence and trigger based on change in state.
-        - Add robustness by taking a moving average of the user's location with previous ones if the current location is < 10m of the geofence.
-      - Future Enhancements:
-        - Battery Opt: Consider implementing dwell time logic or something like " > 10 miles" logic to collect location update at a lower frequency.
-        - Consider instead of SMD logic to collect locations more frequently when the user is moving and less frequently when the user is stationary. 
-        - Privacy preserving: Experiment with Wifi/BLE signals and remove precise lat/long inference. 
-          - Advantage: Wifi/BLE classifier is possibly as privacy preserving if not more than lat/long inference. User can have a private wifi/ble beacon at these places.
-          - If Wifi/BLE is strong enough when user enters geo-fence, consider using wifi and geo location in a naive bayes classifier setting to classify in/out instead.
-    - For BLE Asset tracking logic(asset can connect or disconnect):
-      - Add enum type for 
-
 
 3. **3p App-Based Subscription Management**
     - Components: 
-      - New Enum type in 
+      - Simple intent based registration. 
+      - App can get all its subscriptions.
+      - App can delete all its subscriptions.
+      - App can create a subcription and the API returns a subscription_id when a new subcription is created
+        - App can create only N(=5) per place_tag.
+        - App can only create M(=50) max subscriptions.
+      
+      - 3P-App can request to create a subcription for a user defined place/tag. User can accept or reject this.
+        - To request this, the 3P-App must first ask for permission to access the list of a user's place/tags, without access to their location data.
+      
 4. **Privacy Surface for Subscription Management**
-5. **BLE Asset Tracking**
-6. **Basic Logs Display**
+    - Group all the subscription by app and then for the User's Place Tags
+   
+5. First pass for Geofence enter/exit event:
+    - **Data model**:
+      - `subscription_id, geofence_center, geofence_radius,state`
+      - The state field has the following structure:
+
+        ```
+        struct State{
+          enum most_recent_state, # alias: mrs. 0 for outside, 1 for inside, initialized based on event creation and updated by the algorithm
+          long most_recent_state_change_ts, # alias: mrs_change_ts. When did the MRS last flip. Wall clock unix time.
+        }
+        ```
+   
+      - Map based selection interface.
+      - Initialization of state for geofence and user for this event.
+      - If there is subscription created implement an SMD interface to figure out when to collect location.
+
+    - **Algorithm**:
+    1. Initialize MRS upon creation to be IN / OUT with the first accurate(<10m) LU. If there is no accurate LU
+       or we can't collect, we could ask the user to tell us.
+    2. Pseudocode for both entry and exit events with an additional debounce time:
+    ```
+    if (mrs == IN):
+      if (user is outside geofence):
+        if (now.timestamp - mrs_change_ts > debounce_time):
+          if event_type == GEOFENCE_EXIT:
+              trigger_event()
+          mrs = OUT  # Do these both after the event triggers in a callback. 
+          mrs_change_ts = now.timestamp
+    else:
+      if (user is inside geofence):
+        if (now.timestamp - mrs_change_ts > debounce_time):
+          if event_type == GEOFENCE_ENTRY:
+              trigger_event()
+          mrs = IN # Do these both after the event triggers in a callback. 
+          mrs_change_ts = now.timestamp
+    ```
+6. Future Enhancements:
+    - No GPS/Wifi: Tell user his indoor geofence may not be working ok.
+    - Battery Opt: Consider implementing dwell time logic or something like " > 10 miles" logic to collect location update at a lower frequency.
+    - Noise Reduction measures: Wifi/BLE + IMU + GPS SNR in a simple Naive bayes model for more accuracy indoors.
+    - For high rises and really dense areas GPS SNR or Barometer could also be useful.
+
+## For BLE Asset tracking logic(asset can connect or disconnect):
+- **Data model**:
+    - `subscription_id, asset_id, asset_name, asset_type, asset_metadata, state`
+    - Asset metadata is the Wifi/BLE SSID or MAC.
+    - TODO(Sid): Add state and simple connect/disconnect algorithm for tracking location.
+
+7. **Basic Logs Display**
 
 #### **Phase 2: Enhanced Privacy Features**
 1. **Private Map Tile Display**
@@ -190,20 +232,6 @@
 1. **Data Export/Import Features**
 2. **Advanced Privacy Settings**
 3. **Scalability Enhancements**
-
-### Summary
-
-- **Requirements**: The prioritized functional and non-functional requirements ensure that the core goals of Privy Loci are met.
-- **Documentation**: Categorizing documentation helps keep all the details organized, aiding in both current development and future maintenance.
-- **Roadmap**: The roadmap focuses on delivering a PoT first, then gradually enhancing the app with more features and refinements.
-
-Would you like to refine any of these sections further, or should we proceed with the next steps?
-
-
-
-## There are certain Non-functional requirements Privy Loci fulfills:
-    - The app will use reasonable APIs to encrypt the location data on device. The data never leaves the device.
-    - It never accesses the internet unless it needs to — so there is no doubt as to the transmission of your location data [1].
 
 # Service Design
 Follow the Requirements to suggest the modules that need to be built, starting with basic components, including but not limited to:
