@@ -12,6 +12,28 @@
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:layout_marginTop="16dp" />
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?android:attr/listDivider"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp" />
 
+    <!-- User Subscriptions Section -->
+    <TextView
+        android:id="@+id/user_subscription_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="User Subscriptions"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:layout_marginBottom="8dp" />
+    <!-- RecyclerView for User Subscriptions -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/user_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp" />
     <!-- You can add another RecyclerView here for User Subscriptions if needed -->
 </LinearLayout>

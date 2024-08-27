@@ -132,21 +132,27 @@
 #### **Phase 1: Core Functionality (PoT)**
 1. **User-Defined Places/Tags Management**
     - Components: 
-      - **Data model**, A place/tag management activity.
+      - ~~**Data model**, A place/tag management activity[DONE].~~
         ```
-        struct PlaceTag{
-            id: int, 
-            name: string, 
-            type: enum {place, asset}
-            metadata: json # encrypted
-            created_at: datetime 
-            is_active: bool
+        data class PlaceTag(
+            val id: Int,
+            val name: String,
+            val type: PlaceTagType, // enum {PLACE, ASSET}
+            val metadata: String, // Encrypted JSON string
+            val createdAt: Long,
+            val isActive: Boolean
+        )
+
+        enum class PlaceTagType {
+            PLACE, ASSET
         }
+        ```
+
       - The metatadata are details about the place like its lat/long for a place and Wifi/BLE SSID and additional metadata which the user might want to enter. All of it is encrypted. 
       - Asset Tracking Tag: Foreground Wifi and BLE scanning permission for asset tracking.
       - Place Tag: Map tile and GPS location display for Lat/Long based place.
 2. **Subscriptions**
-   - Data model for user and 3p apps:
+   - ~~Data model for user and 3p apps[DONE]~~:
        ```
        struct Subscription{
            subcription_id: int 
@@ -181,21 +187,23 @@
       - 3P-App can request to create a subcription for a user defined place/tag. User can accept or reject this.
         - To request this, the 3P-App must first ask for permission to access the list of a user's place/tags, without access to their location data.
 5. **Events supported**
-    - The following events are supported:
+    - ~~The following events are supported[DONE]:~~
    ```
-   enum EventTypes{
-        NOTIFY_ARRIVE_AT_PLACE, 
-        NOTIFY_LEAVE_PLACE, 
-        TRACK_BLE_ASSET, 
-        DISPLAY_PINS_MAP_TILE, # Does not need a subscription, activated by apps using a bound services. 
-        QIBLA_DIRECTION_PRAYER_TIME
+    enum class EventType {
+        GEOFENCE_ENTRY,
+        GEOFENCE_EXIT,
+        TRACK_BLE_ASSET_DISCONNECTED,
+        TRACK_BLE_ASSET_NEARBY,
+        QIBLA_DIRECTION_PRAYER_TIME,
+        DISPLAY_PINS_MAP_TILE
     }
 
     ```
       
 6. **Privacy Surface for Subscription Management**
-    - Home screen
-    - Display only for managing all subscriptions, grouped by app and user's places.
+    - ~~Home screen[DONE]~~
+    - ~~Display only for managing all subscriptions, grouped by app and user's places[DONE].~~
+    - Logic for CRUD operations on subscriptions.
    
 7. First pass for Geofence enter/exit event:
     - **Data model**:

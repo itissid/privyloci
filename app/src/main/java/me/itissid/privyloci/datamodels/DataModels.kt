@@ -1,5 +1,10 @@
 package me.itissid.privyloci.datamodels
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
 data class PlaceTag(
     val id: Int,
     val name: String,
@@ -22,7 +27,16 @@ data class Subscription(
     val isActive: Boolean,
     val expirationDt: Long?,
     val event: Event
-)
+) {
+    // Custom property to format the timestamp into a date string
+    val formattedDate: String
+        get() {
+            val date = Date(createdAt)
+            val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            format.timeZone = TimeZone.getDefault() // Use the user's current timezone
+            return format.format(date)
+        }
+}
 
 data class Event(
     val type: EventType,

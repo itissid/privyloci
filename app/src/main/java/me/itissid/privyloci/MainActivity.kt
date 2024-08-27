@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private lateinit var appContainers: List<AppContainer>
+    private lateinit var userSubscriptions: List<Subscription>
     private lateinit var places: List<PlaceTag>
     private lateinit var toolbarTitle: TextView
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,6 +40,8 @@ class MainActivity : AppCompatActivity() {
         // Load data from JSON
         val (placesList, assetsList, subscriptionsList) = loadDataFromJson()
         appContainers = processAppContainers(subscriptionsList)
+        userSubscriptions = subscriptionsList.filter { it.type == SubscriptionType.USER }
+
         places = placesList + assetsList // Combine places and assets into one list
 
         toolbarTitle = findViewById(R.id.toolbar_title)
@@ -48,7 +51,7 @@ class MainActivity : AppCompatActivity() {
         bottomNavigationView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
-                    replaceFragment(HomeFragment(appContainers), getString(R.string.home))
+                    replaceFragment(HomeFragment(appContainers, userSubscriptions), getString(R.string.home))
                     true
                 }
 
