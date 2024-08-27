@@ -1,17 +1,18 @@
 Privy Loci: A Privacy First Location Inference API (Demo: September'24) 
 ===================================================
 
-Privy Loci is an proposal for Privacy First Location *Inferences* with a Zero Trust model for
-users and it is a proposal for 3p apps that rely on location data to function.
-When ready it will be a demo of what a privacy first location inference could look like and what the
-permission system ought to be like on mobile platforms.
+Privy Loci is an proposal for:
+
+a. Privacy First Location *Inferences* with a Zero Trust model for users.
+
+b. Building 3p apps that rely on location data to without sacrificing function.
 
 NOTE: I refer to "location data" to include not just (Lat,long,accuracy) tuple, but also RF: BLE/WiFi data, Pose, Activity Recognition data etc. Privy Loci's demo focuses on the Lat/Long and RF data. 
 
 ## TL;DR How does it work?
 It proposes a complete *separation* of the PII and sensitive location data from the *value* that apps add to your life.
-It is also compatible with an open design to let users and 3p-apps to work across platforms to provide a privacy-first location inference API.  
-To think that the idea is, “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are tactics one has to think from first principles to solve the real problem which is deeply rooted in the Location Permission Structure and the designs built on it in major platforms, as I explain below. This is a major concern and can be mitigated for a good number of apps to function while not letting users deal with the worry.
+It is also compatible, due to an open design, to let users and 3p-apps to work across platforms to provide a privacy-first location inference API.  
+To think that the idea is, “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are tactics to implement privacy, one has to think from first principles to solve the real problem which is deeply rooted in the Location Permission Structure and the designs built on it in major platforms, as I explain below. This is a major concern and can be mitigated for a good number of apps to function while not letting users deal with the worry.
 
 # Is it meant to be an App? How can I use it?
 Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service an Infrastructure as a Service(IaaS) model to enable users and long term support(LTS) for 3p-apps.
