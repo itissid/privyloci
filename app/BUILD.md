@@ -133,27 +133,43 @@
 1. **User-Defined Places/Tags Management**
     - Components: 
       - **Data model**, A place/tag management activity.
-        - `place_tag_id, place_tag_name, place_tag_type, place_tag_metadata, created_At, is_active`.
-      
+        ```
+        struct PlaceTag{
+            id: int, 
+            name: string, 
+            type: enum {place, asset}
+            metadata: json # encrypted
+            created_at: datetime 
+            is_active: bool
+        }
+      - The metatadata are details about the place like its lat/long for a place and Wifi/BLE SSID and additional metadata which the user might want to enter. All of it is encrypted. 
       - Asset Tracking Tag: Foreground Wifi and BLE scanning permission for asset tracking.
       - Place Tag: Map tile and GPS location display for Lat/Long based place.
-2. **User-Defined Subscription Management**
+2. **Subscriptions**
+   - Data model for user and 3p apps:
+       ```
+       struct Subscription{
+           subcription_id: int 
+           type: enum{app,user}
+           app_info: json
+           place_tag_id: string 
+           created_at: datetime 
+           is_active: bool
+           expiration_dt: datetime
+       }
+       ```
+   - Each Place/Tags can have many Subscriptions. 
+     - app_info are things like app name, app_id, app_logo, app_description etc if the type is app.  
+3. **User-Defined Subscription Management**
     - Components: 
-      - Data model(reused by 3p apps):
-        - To track the subscriptions itself:
-          - `app_user_id, is_user_subscription, subcription_id, event_type, place_tag_id, created_at, is_active, expiration_dt`
-          - Primary Key to identify a subscription is `(app_user_id, event_type, place_tag_id, subscription_id)`.
-        - To track the state of the subscription based on the event type we need to have different tables, specified below.
         - The subscription relates to an event using the subscription_id:
           - If there is no subscription for that app present 
         - API:
-          - Create or delete a subscription. 
-      - FLP with the algorithm. 
-      - Persistent and encrypted state tracking algorithm.
-    - Events supported: 
-      - ARRIVE_AT_PLACE, LEAVE_PLACE, TRACK_BLE_ASSET, DISPLAY_MAP_TILE, QIBLA_DIRECTION_PRAYER_TIME.
+          - CRUD operations on subscriptions by apps/users.
+          - When an user creates a subscription the notifications are in the pricy loci app itself.
+    - Persistent and encrypted state tracking algorithms.
 
-3. **3p App-Based Subscription Management**
+4. **3p App-Based Subscription Management**
     - Components: 
       - Simple intent based registration. 
       - App can get all its subscriptions.
@@ -164,13 +180,33 @@
       
       - 3P-App can request to create a subcription for a user defined place/tag. User can accept or reject this.
         - To request this, the 3P-App must first ask for permission to access the list of a user's place/tags, without access to their location data.
+5. **Events supported**
+    - The following events are supported:
+   ```
+   enum EventTypes{
+        NOTIFY_ARRIVE_AT_PLACE, 
+        NOTIFY_LEAVE_PLACE, 
+        TRACK_BLE_ASSET, 
+        DISPLAY_PINS_MAP_TILE, # Does not need a subscription, activated by apps using a bound services. 
+        QIBLA_DIRECTION_PRAYER_TIME
+    }
+
+    ```
       
-4. **Privacy Surface for Subscription Management**
-    - Group all the subscription by app and then for the User's Place Tags
+6. **Privacy Surface for Subscription Management**
+    - Home screen
+    - Display only for managing all subscriptions, grouped by app and user's places.
    
-5. First pass for Geofence enter/exit event:
+7. First pass for Geofence enter/exit event:
     - **Data model**:
-      - `subscription_id, geofence_center, geofence_radius,state`
+      - ```
+        struct GeofenceEvent{
+          subscription_id: int,
+          type: enum{GEOFENCE_ENTRY, GEOFENCE_EXIT},
+          geofence_center: string, # lat/long
+          geofence_radius: int, # in meters
+          state: State
+        }
       - The state field has the following structure:
 
         ```
@@ -184,7 +220,7 @@
       - Initialization of state for geofence and user for this event.
       - If there is subscription created implement an SMD interface to figure out when to collect location.
 
-    - **Algorithm**:
+8. **Geofence Algorithm**:
     1. Initialize MRS upon creation to be IN / OUT with the first accurate(<10m) LU. If there is no accurate LU
        or we can't collect, we could ask the user to tell us.
     2. Pseudocode for both entry and exit events with an additional debounce time:
@@ -204,17 +240,28 @@
           mrs = IN # Do these both after the event triggers in a callback. 
           mrs_change_ts = now.timestamp
     ```
-6. Future Enhancements:
+9.  For Wifi/BLE/IR Asset tracking logic(asset can connect or disconnect):
+    - **Data model**:
+        ```
+        struct AssetTrack{
+          subscription_id: int,
+          type: enum{ASSET_TRACK_CONNECT_DISCONNECT, ASSET_NEARBY},
+          asset_id: string,
+          asset_name: string,
+          asset_type: enum {BLE, WIFI, IR},
+          asset_metadata: json, # encrypted
+          state: State # encrypted
+        }
+        ```
+    - Asset metadata is the Wifi/BLE SSID or MAC or unique identifier.
+    - TODO(Sid): State model.
+    - TODO(Sid): Add a simple connect/disconnect algorithm for tracking location of asset
+
+9. Future Enhancements:
     - No GPS/Wifi: Tell user his indoor geofence may not be working ok.
     - Battery Opt: Consider implementing dwell time logic or something like " > 10 miles" logic to collect location update at a lower frequency.
     - Noise Reduction measures: Wifi/BLE + IMU + GPS SNR in a simple Naive bayes model for more accuracy indoors.
     - For high rises and really dense areas GPS SNR or Barometer could also be useful.
-
-## For BLE Asset tracking logic(asset can connect or disconnect):
-- **Data model**:
-    - `subscription_id, asset_id, asset_name, asset_type, asset_metadata, state`
-    - Asset metadata is the Wifi/BLE SSID or MAC.
-    - TODO(Sid): Add state and simple connect/disconnect algorithm for tracking location.
 
 7. **Basic Logs Display**
 
@@ -232,12 +279,5 @@
 1. **Data Export/Import Features**
 2. **Advanced Privacy Settings**
 3. **Scalability Enhancements**
-
-# Service Design
-Follow the Requirements to suggest the modules that need to be built, starting with basic components, including but not limited to:
-1. Foreground service.
-2. The app's classes, data model.
-3. Subscription API design for 3p Apps.
-4. User's own interaction use-cases like management of tags and apps that have subscriptions.
 
 -------------------------------------------
