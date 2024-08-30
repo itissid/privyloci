@@ -38,7 +38,7 @@ But the 3p app does not **need** the sensitive location data itself. A user eyes
 This is a 0-trust model, and it can suffice many use cases, and is what I propose in a bit of detail here.
 
 
-To go with an analogy, what most apps are forced to do is like asking a guy who rents a room/floor in your house: “If you can't let me into your bedroom at any time, I will not rent it to you”. An incredible invasion of privacy.
+To go with an analogy, its like a landlord saying: "Give me your account and routing number, to collect your rent. Its the only way...”. An incredible invasion of privacy and as such no easy guarantee of fraud via ACH.
 
 
 ## Why do I call it a false choice?
