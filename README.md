@@ -54,7 +54,7 @@ To answer this, let's look a bit more at the specific choice you and app develop
 2. For 3P-Apps, even the virtuous, privacy-conscious ones, are forced to exhibit creepy behavior to the user or not exist:
 
 
-   Apps with good intention or not almost *always* have to make a 1/0 choice between having a Location data or not, to function. A lot of 3p applications(on android and iOS) build with features that rely on location **don't need** the actual lat/long, Wi-Fi SSID, BLE SSID data to function. Many inferences can be made without collecting this data and shipping it off to servers.
+   Apps with good intention or not almost *always* have to make a 1/0 choice between having a Location data or not, to function. A lot of 3p applications(on android and iOS) build with features that rely on location **don't need** the actual lat/long, Wi-Fi SSID, BLE SSID data to function. Many inferences can be made without warehousing this data on servers. Where there is a need to do computationally intensive post-processing of a location, algorithms could run in user trusted remote services. This would cover a vast majority of the use cases.
 
 ## What kind of problems it creates
 
