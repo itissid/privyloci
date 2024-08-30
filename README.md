@@ -65,7 +65,7 @@ Problems with this model happens way too often in our world, for example, how ho
 
 ## What is a privacy first location inference?
 
-Note, I used the word Inferences not location data (accurate GPS position, IMU traces), I want to make clear that while current demo is demonstrating a *system* for protecting the privacy of the *inference* —  a higher order function like where is my car? Are you at home without telling the app where home is? —  it still needs all those mobile permissions to collect location data that you don't like to give. The whole point is to changes this and ultimately to do accurate private location inferences. 
+Note, I used the word Inferences not location data (GPS position, IMU traces), I want to make clear that while current demo is demonstrating a *system* for protecting the privacy of the *inference* —  a higher order function like "where is my car"? Are you at home without telling the app where home is? . The inference is what 3p-apps are *really* after not the location data. The demo still needs all those mobile permissions to collect location data that you don't like to give, this will change in future releases.
 
 For now its a way to spark a conversation about the state of things that can enable more private APIs. At this time all I can guarantee that all the location data collected by Privy Loci, should you use it, would remain private and on device and encrypted on inception and never shipped to a server. Future versions will propose an anonymized infrastructure design to do post processing as well as privacy preserving algorithms that are cross platform and can handle expensive computation.
 
