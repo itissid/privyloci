@@ -30,7 +30,7 @@ FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome.
 
 # Introduction
 ## The value proposition of Privy Loci begins with the recognition of a false choice.
-The permissions' tradeoff for location centric 3p apps on mobile platforms is based on a simple, but false choice presented to the user: **“Do you want this app to collect your location data? Yes/No”**. If you say yes, you have no easy to determine privacy guarantees, if you say no you can't use these apps at all. Let's take an example to motivate the case. Say you want to find your headphones or keys that have a BLE dongle(see my FAQ about Apple below on this). At this moment, this is done, approximately, by:
+The permissions' tradeoff for location centric 3p apps on mobile platforms is based on a simple, but false choice presented to the user: **“Do you want this app to collect your location data? Yes/No”**. If you say yes, you have no easy to determine privacy guarantees, if you say no you can't use these apps at all. Let's take an example to motivate the case. Say you want to find your headphones or keys that have a BLE dongle(see my FAQ below about how Apple does this and in the spirit of Privy Loci). At this moment, this is done, approximately, by:
 1. Connecting/scanning for the BLE device(known list or auto connect) and the lat long in the background and storing them both.
 2. When you disconnect from BLE, the 3p-app has the last location it shows it to you on a map.
 
