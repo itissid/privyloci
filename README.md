@@ -56,7 +56,7 @@ To answer this, let's look a bit more at the specific choice you and app develop
 
    Apps with good intention or not almost *always* have to make a 1/0 choice between having a Location data or not, to function. A lot of 3p applications(on android and iOS) build with features that rely on location **don't need** the actual lat/long, Wi-Fi SSID, BLE SSID data to function. Many inferences can be made without warehousing this data on servers. Where there is a need to do computationally intensive post-processing of a location, algorithms could run in user trusted remote services. This would cover a vast majority of the use cases.
 
-## What kind of problems it creates
+## What kind of problems the false choice creates
 
 It's not just that you don't get value from giving away location data to major OS platforms, bad as that is, you do get the very accurate Blue Dot and a host of location services. But these services are now being monopolized, and the false choice has now led to the additional proliferation of location data beyond major mobile platform OS providers to a myriad number of other smaller players. In other words its a Product and System Design problem and not just an engineering one.
 
