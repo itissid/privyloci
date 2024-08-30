@@ -20,9 +20,9 @@ Not exactly. It is an app form for the demo and usable, for example to track ass
 The bigger idea is to build a foundational document rethinking the problem and core algorithms
 to enable such things. FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
 
-# What PrivyLoci is not?
-- In this demo I am not solving for accurate private GPS positioning. But this is entirely possible and pivotal to gaining complete privacy. At the moment I do use Google's Fused Location Provider[6] to demo.
-- It is not an app to replace location infrastructure/services like those that use a combination of one or more of AGPS, Wifi/BLE databases[6]. Though building open but private Wifi/BLE networks and is possible[5] it is not the only way to provide accurate inference[12][11].
+# What PrivyLoci's Demo is not?
+- In this demo I am not solving for accurate GPS positioning(this happens using a combination of one or more of AGPS, Wifi/BLE databases[6]). Accurate GPS positioning is entirely possible to do privately and what would come as a future feature. At the moment I do use Google's Fused Location Provider[6] to demo.
+- Though building open but private Wifi/BLE networks and is possible[5] it is not the only way to provide accurate inference[12][11].
 - It is not an app to replace other location centric apps. On the contrary it empowers more of them to be created.
 
 # Introduction
