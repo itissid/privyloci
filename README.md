@@ -5,14 +5,14 @@ Privy Loci is an proposal for:
 
 a. Privacy First Location *Inferences* with a Zero Trust model for users.
 
-b. Building 3p apps that rely on location data to without sacrificing function.
+b. Building Third-Party apps(3p-apps) that rely on location data to without sacrificing function.
 
 NOTE: I refer to "location data" to include not just (Lat,long,accuracy) tuple, but also RF: BLE/WiFi data, Pose, Activity Recognition data etc. Privy Loci's demo focuses on the Lat/Long and RF data. 
 
 ## TL;DR How does it work?
 It proposes a complete *separation* of the PII and sensitive location data from the *value* that apps add to your life.
 It is also compatible, due to an open design, to let users and 3p-apps to work across platforms to provide a privacy-first location inference API.  
-To think that the idea is, “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are tactics to implement privacy, one has to think from first principles to solve the real problem which is deeply rooted in the Location Permission Structure and the designs built on it in major platforms, as I explain below. This is a major concern and can be mitigated for a good number of apps to function while not letting users be burdened about privacy and misuse of this data.
+To think that the idea is, “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are tactics to implement privacy, one has to think from first principles to solve the real problem which is deeply rooted in the Location Permission Structure and the designs built on it in major mobile OS platforms, as I explain below. The privacy overhead can be mitigated for a good number of 3p-apps to function while not letting users be burdened about worries of privacy and misuse of this data.
 
 # Is it meant to be an App? How can I use it?
 Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service - an Infrastructure as a Service(IaaS) kinda model - to enable users and long term support(LTS) for 3p-apps. The demo is to show a few key concepts:
