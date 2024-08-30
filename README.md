@@ -97,14 +97,13 @@ As great as efforts like OSRM, OSMAnd and OpenStreetMaps are, they don't have pa
 - Are the users informed of what we are doing?
 # Other questions you may have
 ## Q. Doesn't Apple already provide a very good privacy model for location data?
-  Apple advertises privacy in a very upfront manner[13][16]. If you believe them and you can afford it, more power to you. There are indeed some good products, for example they mention that in the Find My network which uses nearby apple to locate yours, they encrypt the data. They also mention several noteworthy features which are in the spirit of Privy Loci[14] for example:
+  Apple advertises privacy in a very upfront manner[13][16]. If you believe them and you can afford it, more power to you. There are seemingly some good privacy first products, for example they mention that in the Find My network which uses nearby apple to locate yours, they encrypt the data e2e. They also mention several noteworthy features which are in the spirit of Privy Loci[14] for example:
 
   - On-Device processing of location data where possible.
   - Individual control of what apps have access to Bluetooth data in as recent as iOS 13 and limit preciseness of such inferences later.    
      
-But instead of enumerating extensive privacy guarantees and comparing them to Privy Loci. Lets look at the initial premise of Privy Loci - the False Choice. Can 3P apps, for example, work and render their experience without getting into the false choice trap? Here the evidence is weaker [15], an app could render inferences about finding your car by invoking the map Privacy Surface like in Privy Loci, where the user is assured of privacy guarantees, instead iOS limits location access[15][17].  
-    The bigger issue really is the so called Walled Garden of apple. FindMy, iBeacons all work on Apple devices and to serve its ecosystem. Even if take the privacy guarantee on its face, Apple can wall off features as it likes by
-    doing whatever it wants to the competition. 
+But instead of enumerating extensive privacy features in order to compare them to Privy Loci, lets look at the initial premise of Privy Loci - the False Choice and use that as a test. Can 3P apps, for example, work and render their experience without getting into the false choice trap? Here the evidence is weaker [15], an app could render inferences about, say finding your BLE asset(car), by invoking the map Privacy Surface like in Privy Loci, where the user is assured of privacy, instead iOS limits location access to apps[15][17].  
+    The bigger issue really is the so called Walled Garden of apple. FindMy, iBeacons etc all tech work on Apple devices and to serve its ecosystem. Even if take the privacy guarantee on its face, Apple can wall off features as it likes by doing whatever it wants to the competition.
 
 
 # Credits
