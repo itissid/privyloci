@@ -105,6 +105,12 @@ As great as efforts like OSRM, OSMAnd and OpenStreetMaps are, they don't have pa
 But instead of enumerating extensive privacy features in order to compare them to Privy Loci, lets look at the initial premise of Privy Loci - the False Choice and use that as a test. Can 3P apps, for example, work and render their experience without getting into the false choice trap? Here the evidence is weaker [15], an app could render inferences about, say finding your BLE asset(car), by invoking the map Privacy Surface like in Privy Loci, where the user is assured of privacy, instead iOS limits location access to apps[15][17].  
     The bigger issue really is the so called Walled Garden of apple. FindMy, iBeacons etc all tech work on Apple devices and to serve its ecosystem. Even if take the privacy guarantee on its face, Apple can wall off features as it likes by doing whatever it wants to the competition.
 
+## Q. Why did you build it on Android no iOS?
+Not yet, but it is planned. I know a bit of android and with AOSP it would be easier to integrate Privy Loci.
+
+## Q. What about desktop environments. There are location services there as well that should be private?
+It has been suggested to me by someone  on the Libre Goelocation Project that one could use a sandbox like Flatpack to implement some cool things from this project in that world[20]. I might just do that at somepoint!
+
 
 # Credits
 ## Icon artwork from The Noun Project:
@@ -140,9 +146,17 @@ But instead of enumerating extensive privacy features in order to compare them t
 [12] https://www.zephr.xyz/
 
 [13] https://www.apple.com/privacy/features/
+
 [14] https://www.apple.com/privacy/docs/Location_Services_White_Paper_Nov_2019.pdf
+
 [15] https://radar.com/blog/understanding-approximate-location-in-ios-14
+
 [16] https://www.apple.com/legal/transparency/pdf/requests-2023-H1-en.pdf
+
 [17] https://stackoverflow.com/questions/76504194/will-location-summary-for-always-allow-location-permission-shown-for-ibeaconre
+
 [18] https://github.com/wiglenet/m8b
+
 [19] https://beacondb.net/
+
+[20] https://docs.flatpak.org/en/latest/conventions.html
