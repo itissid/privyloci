@@ -48,7 +48,7 @@ To answer this, let's look a bit more at the specific choice you and app develop
 1. For users: YOU ARE FORCED TO CRINGE or NOT use the app at all,  a `1/0` choice:
 
 
-   Permission on major mobile OSes is to collect or not collect. Expound on the fact that Android/iOS offer apps to collect location in foreground or background or always. (TODO: Cue creepy android/iOS map on where all this app has collected your location). But all these fine-grained permissions are still variations of the same false choice. I have seen first hand how privacy teams function in large orgs function and I can tell you that though well-intentioned data misuse is rampant because these policies can be changed to provide “value”.
+   Permission on major mobile OSes is to collect or not collect (permission variations like preciseness and hiding wifi/ble don't change this fact). TODO: Elaborate on the fact that Android/iOS offer apps to collect location in foreground or background or always is stupid. TODO: Add creepy screenshot of android/iOS permissions map: "This app has collected your location ___". But all these fine-grained permissions are still variations of the same false choice. I have seen first hand how privacy teams function in large orgs function and I can tell you that though well-intentioned data misuse is rampant because these policies can be changed to provide “value”.
 
 
 2. For 3P-Apps, even the virtuous, privacy-conscious ones, are forced to exhibit creepy behavior to the user or not exist:
