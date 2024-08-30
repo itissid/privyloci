@@ -15,7 +15,7 @@ It is also compatible, due to an open design, to let users and 3p-apps to work a
 To think that the idea is, “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are tactics to implement privacy, one has to think from first principles to solve the real problem which is deeply rooted in the Location Permission Structure and the designs built on it in major mobile OS platforms, as I explain below. The privacy overhead can be mitigated for a good number of 3p-apps to function while not letting users be burdened about worries of privacy and misuse of this data.
 
 # Is it meant to be an App? How can I use it?
-Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service - an Infrastructure as a Service(IaaS) kinda model - to enable users and long term support(LTS) for 3p-apps. The demo is to show a few key concepts:
+Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service and eventually an Infrastructure as a Service(IaaS) to enable users and long term support(LTS) for 3p-app development with location. The demo is to show a few key concepts:
 
 0. To build this foundational document of concepts rethinking the problem and core infrastructure to enable private location inferences.
 1. How to implement location based inferences for user and 3p-apps without sacrificing privacy.
