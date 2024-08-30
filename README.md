@@ -15,10 +15,13 @@ It is also compatible, due to an open design, to let users and 3p-apps to work a
 To think that the idea is, “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are tactics to implement privacy, one has to think from first principles to solve the real problem which is deeply rooted in the Location Permission Structure and the designs built on it in major platforms, as I explain below. This is a major concern and can be mitigated for a good number of apps to function while not letting users be burdened about privacy and misuse of this data.
 
 # Is it meant to be an App? How can I use it?
-Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service an Infrastructure as a Service(IaaS) model to enable users and long term support(LTS) for 3p-apps. The demo is just to give you a feel for what such an experience could be like. 
+Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service an Infrastructure as a Service(IaaS) model to enable users and long term support(LTS) for 3p-apps. The demo is to show a few key concepts:
 
-The bigger idea is to build a foundational document rethinking the problem and core algorithms
-to enable such things. FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
+0. To build this foundational document of concepts rethinking the problem and core infrastructure to enable private location inferences.
+1. How to implement location based inferences for user and 3p-apps without sacrificing privacy.
+2. Eventually, incorporate completely private location data itself, i.e. the accurate GPS signal for e.g. by using a host of known techniques like on device AGPS, privacy preserving cryptographic hashes[5][19], crowdsourced RTCM corrections[12].
+   
+FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
 
 # What PrivyLoci's Demo is not?
 - In this demo I am not solving for accurate GPS positioning(this happens using a combination of one or more of AGPS, Wifi/BLE databases[6]). Accurate GPS positioning is entirely possible to do privately and what would come as a future feature. At the moment I do use Google's Fused Location Provider[6] to demo.
@@ -147,3 +150,4 @@ But instead of enumerating extensive privacy guarantees and comparing them to Pr
 [16] https://www.apple.com/legal/transparency/pdf/requests-2023-H1-en.pdf
 [17] https://stackoverflow.com/questions/76504194/will-location-summary-for-always-allow-location-permission-shown-for-ibeaconre
 [18] https://github.com/wiglenet/m8b
+[19] https://beacondb.net/
