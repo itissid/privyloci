@@ -218,7 +218,7 @@
       - The state field has the following structure:
 
         ```
-        struct State{
+        struct GeofenceState{
           enum most_recent_state, # alias: mrs. 0 for outside, 1 for inside, initialized based on event creation and updated by the algorithm
           long most_recent_state_change_ts, # alias: mrs_change_ts. When did the MRS last flip. Wall clock unix time.
         }
@@ -229,7 +229,7 @@
       - If there is subscription created implement an SMD interface to figure out when to collect location.
 
 8. **Geofence Algorithm**:
-    1. Initialize MRS upon creation to be IN / OUT with the first accurate(<10m) LU. If there is no accurate LU
+    1. Initializethe State upon creation to be IN / OUT with the first accurate(<10m) LU. If there is no accurate LU
        or we can't collect, we could ask the user to tell us.
     2. Pseudocode for both entry and exit events with an additional debounce time:
     ```

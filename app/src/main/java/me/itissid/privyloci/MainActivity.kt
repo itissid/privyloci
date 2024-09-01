@@ -2,9 +2,13 @@ package me.itissid.privyloci
 
 import HomeFragment
 import PlacesTagFragment
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -16,6 +20,8 @@ import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.SubscriptionType
+import me.itissid.privyloci.service.startMyForegroundService
+import me.itissid.privyloci.util.Logger
 
 // TODO(Sid): Replace with real data after demo.
 data class MockData(
@@ -37,7 +43,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main) // Ensure this line is present
 
-        // Load data from JSON
+        // TODO(Sid): Remove Load data from JSON.
         val (placesList, assetsList, subscriptionsList) = loadDataFromJson()
         appContainers = processAppContainers(subscriptionsList)
         userSubscriptions = subscriptionsList.filter { it.type == SubscriptionType.USER }
@@ -67,6 +73,14 @@ class MainActivity : AppCompatActivity() {
         // Load the default fragment (Home) when the app starts
         if (savedInstanceState == null) {
             bottomNavigationView.selectedItemId = R.id.nav_home
+        }
+        // Start the foreground service if there are subscriptions that require sensors.
+        // Check and request notification permission
+        if (!checkNotificationPermission()) {
+            requestNotificationPermission()
+        } else {
+            // Permission is already granted, start the service
+            startMyForegroundService(this)
         }
     }
 
@@ -129,6 +143,50 @@ class MainActivity : AppCompatActivity() {
                 uniqueSubscriptions = uniqueSubscriptions,
                 subscriptions = appSubscriptions
             )
+        }
+    }
+    // Foreground service permission related code
+    companion object {
+        const val REQUEST_CODE_POST_NOTIFICATIONS = 1001
+    }
+    private fun checkNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            // Permission is automatically granted on devices lower than Android 13
+            true
+        }
+    }
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                REQUEST_CODE_POST_NOTIFICATIONS
+            )
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            REQUEST_CODE_POST_NOTIFICATIONS -> {
+                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                    // Permission granted, you can start your foreground service here
+                    startMyForegroundService(this)
+                } else {
+                    // Permission denied, you can show a message or handle accordingly
+                    Logger.w("MainActivity", "POST_NOTIFICATIONS permission denied")
+                }
+            }
         }
     }
 

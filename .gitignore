@@ -36,3 +36,6 @@ gradle-app.setting
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 /scratch
+tmux-client-*
+docs/Pointers
+docs/RTCM\ Stream\ correction

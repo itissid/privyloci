@@ -40,8 +40,6 @@ data class Subscription(
 
 data class Event(
     val type: EventType,
-    val geofenceCenter: String?, // Nullable since not all events use this
-    val geofenceRadius: Int?,    // Nullable since not all events use this
     val metadata: String?        // Nullable since not all events use this
 )
 
@@ -50,14 +48,15 @@ enum class SubscriptionType {
 }
 
 enum class EventType {
-    GEOFENCE_ENTRY,
+    GEOFENCE_ENTRY, // TODO(Sid):
     GEOFENCE_EXIT,
     TRACK_BLE_ASSET_DISCONNECTED,
     TRACK_BLE_ASSET_NEARBY,
     QIBLA_DIRECTION_PRAYER_TIME,
     DISPLAY_PINS_MAP_TILE
 }
-data class GeofenceEvent(
+
+data class GeofenceSubscription(
     val subscriptionId: Int,
     val type: GeofenceEventType, // enum {GEOFENCE_ENTRY, GEOFENCE_EXIT}
     val geofenceCenter: String, // Lat/Long as a string
@@ -67,7 +66,7 @@ data class GeofenceEvent(
 
 data class GeofenceState(
     val mostRecentState: GeofenceStateType, // enum {IN, OUT}
-    val mostRecentStateChangeTs: Long
+    val mostRecentStateChangeTs: Long // Time since epoch in milliseconds.
 )
 
 enum class GeofenceStateType {

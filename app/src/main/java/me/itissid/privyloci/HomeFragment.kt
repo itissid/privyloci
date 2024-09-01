@@ -5,7 +5,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import me.itissid.privyloci.AppAdapter
+import me.itissid.privyloci.ThirdPartyAppAdapter
 import me.itissid.privyloci.R
 import me.itissid.privyloci.UserSubscriptionAdapter
 import me.itissid.privyloci.datamodels.AppContainer
@@ -25,7 +25,7 @@ class HomeFragment(private val appContainers: List<AppContainer>, private val us
 
         // Set up the RecyclerView with a layout manager and the adapter for App subscriptions
         appRecyclerView.layoutManager = LinearLayoutManager(context)
-        appRecyclerView.adapter = AppAdapter(appContainers)
+        appRecyclerView.adapter = ThirdPartyAppAdapter(appContainers)
 
         // If you want to handle user subscriptions separately, set up another RecyclerView here
          val userRecyclerView = view.findViewById<RecyclerView>(R.id.user_recycler_view)

@@ -1,85 +1,83 @@
-Privy Loci: A Privacy First Location Inference System (Demo: September'24) 
+Privy Loci: A Privacy First Location Inference API (Demo: September'24) 
 ===================================================
 
 Privy Loci is an proposal for:
 
 a. Privacy First Location *Inferences* with a Zero Trust model for users.
 
-b. Building Third-Party apps(3p-apps) that rely on location data to without sacrificing function.
+b. Building 3p apps that rely on location data to without sacrificing function.
 
 NOTE: I refer to "location data" to include not just (Lat,long,accuracy) tuple, but also RF: BLE/WiFi data, Pose, Activity Recognition data etc. Privy Loci's demo focuses on the Lat/Long and RF data. 
 
 ## TL;DR How does it work?
 It proposes a complete *separation* of the PII and sensitive location data from the *value* that apps add to your life.
 It is also compatible, due to an open design, to let users and 3p-apps to work across platforms to provide a privacy-first location inference API.  
-To think “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are tactics to implement privacy, one has to think from first principles to solve the real problem which is deeply rooted in the Location Permission Structure and the APIs based on it by major mobile OS platforms, as I explain below to some length. The privacy overhead can be mitigated for a good number of 3p-apps to function while not letting users be burdened about worries of privacy and misuse of this data.
+To think that the idea is, “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are valid privacy implementations, one has to think from first principles to solve the real problem, which is deeply rooted in the Location Permission Structure and the designs built on it on major mobile platforms, as I explain below. This is a major concern and can be mitigated for a good number of apps to function while not letting users deal with the worry about privacy of their location data.
 
 # Is it meant to be an App? How can I use it?
-Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service and eventually an Infrastructure as a Service(IaaS) to enable users and long term support(LTS) for 3p-app development with location. The demo is to show a few key concepts:
+Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service an Infrastructure as a Service(IaaS) on device to enable users and and 3p-apps alike. The demo is for giving you a feel for what the experience is like. 
 
-0. To build this foundational document of concepts rethinking the problem and core infrastructure to enable private location inferences.
-1. How to implement location based inferences for user and 3p-apps without sacrificing privacy.
-2. Eventually, incorporate completely private location data itself, i.e. the accurate GPS signal for e.g. by using a host of known techniques like on device AGPS, privacy preserving cryptographic hashes[5][19], crowdsourced RTCM corrections[12].
-   
-FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
+The bigger idea is to build a foundational document rethinking the problem and core algorithms
+to enable location products. FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
 
-# What PrivyLoci's Demo is not?
-- In this demo I am not solving for accurate GPS positioning(this happens using a combination of one or more of AGPS, Wifi/BLE databases[6]). Accurate GPS positioning is entirely possible to do privately and what would come as a future feature. At the moment I do use Google's Fused Location Provider[6] to demo.
-- Though building open but private Wifi/BLE networks and is possible[5] it is not the only way to provide accurate inference[12][11].
+# What PrivyLoci is not?
+- In this demo I am not solving for accurate private GPS positioning. But this is entirely possible and pivotal to gaining complete privacy. At the moment I do use Google's Fused Location Provider[6] for the demo.
+- It is not an app to replace location infrastructure/services like those that use a combination of one or more of AGPS, Wifi/BLE databases[6]. Though building open but private Wifi/BLE networks and is possible[5] it is not the only way to provide accurate location[12][11] and thus the inference.
 - It is not an app to replace other location centric apps. On the contrary it empowers more of them to be created.
 
 # Introduction
 ## The value proposition of Privy Loci begins with the recognition of a false choice.
-The permissions' tradeoff for location centric 3p apps on mobile platforms is based on a simple, but false choice presented to the user: **“Do you want this app to collect your location data? Yes/No”**. If you say yes, you have no easy to determine privacy guarantees, if you say no you can't use these apps at all. Let's take an example to motivate the case. Say you want to find your headphones or keys that have a BLE dongle(see my FAQ below about how Apple does this and still misses the spirit and intent of Privy Loci). At this moment, this is done, approximately, by:
+The permissions' tradeoff for location centric 3p apps on mobile platforms is based on a simple, but false choice presented to the user: **“Do you want this app to collect your location data? Yes/No”**. If you say yes, you have no easy to determine privacy guarantees, if you say no you can't use these apps at all. Let's take an example to motivate the case. Say you want to find your headphones or keys that have a BLE dongle(see my FAQ about Apple below on this). At this moment, this is done, approximately, by:
 1. Connecting/scanning for the BLE device(known list or auto connect) and the lat long in the background and storing them both.
 2. When you disconnect from BLE, the 3p-app has the last location it shows it to you on a map.
 
-But the 3p app does not **need** the sensitive location data itself. A user eyes-only Private Service could do this tracking for the 3p app and just display a Private Map tile, like I will show in Privy Loci(via android intents or plugins) with the blue dot. This **separates** the Value Addition the 3p app gives — i.e., the Asset —  from the Private Location data. The look and feel like map tiles, PoIs etc could be customized per the app's themes. 
-This is a 0-trust model, and it can suffice many use cases, and is what I propose in a bit of detail here.
+But the 3p app does not **need** the sensitive location data itself. A user eyes-only Private Service could do this tracking for the 3p app and just display a sandboxed process with, say a Private Map tile. This **separates** the Value Addition the 3p app gives — i.e., the Asset —  from the Private Location data. The look and feel of the content displayed could be customized per the app's needs. 
 
+This is a 0-trust model, and it can suffice many use cases, and is what I propose in a bit of detail later.
 
-To go with an analogy, its like a landlord saying: "Give me your account and routing number, to collect your rent. Its the only way...”. An incredible invasion of privacy, and as such, no easy guarantee of no fraudulent ACH debits.
-
+To understand this with a simple analogy, what most apps are forced to do on platforms is like asking a guy who rents a room/floor in your house: “If you can't let me into your bedroom at any time I want, I will not rent it to you”. An incredible invasion of privacy.
 
 ## Why do I call it a false choice?
 To answer this, let's look a bit more at the specific choice you and app developers have today with location centric apps.
 
-
 1. For users: YOU ARE FORCED TO CRINGE or NOT use the app at all,  a `1/0` choice:
 
-
-   Permission on major mobile OSes is to collect or not collect (permission variations like preciseness and hiding wifi/ble don't change this fact). TODO: Elaborate on the fact that Android/iOS offer apps to collect location in foreground or background or always is stupid. TODO: Add creepy screenshot of android/iOS permissions map: "This app has collected your location ___". But all these fine-grained permissions are still variations of the same false choice. I have seen first hand how privacy teams function in large orgs function and I can tell you that though well-intentioned data misuse is rampant because these policies can be changed to provide “value”.
+   Permission on major mobile OSes is to collect or not collect. Expound on the fact that Android/iOS offer apps to collect location in foreground or background or always. (TODO: Cue creepy android/iOS map on where all this app has collected your location). But all these fine-grained permissions are still variations of the same false choice. I have seen first hand how privacy teams function in large orgs function and I can tell you that though well-intentioned data misuse is rampant because these policies can be changed to provide “value”.
 
 
 2. For 3P-Apps, even the virtuous, privacy-conscious ones, are forced to exhibit creepy behavior to the user or not exist:
 
 
-   Apps with good intention or not almost *always* have to make a 1/0 choice between having a Location data or not, to function. A lot of 3p applications(on android and iOS) build with features that rely on location **don't need** the actual lat/long, Wi-Fi SSID, BLE SSID data to function. Many inferences can be made without warehousing this data on servers. Where there is a need to do computationally intensive post-processing of a location, algorithms could run in user trusted remote services. This would cover a vast majority of the use cases.
+   Apps with good intention or not almost *always* have to make a 1/0 choice between having a Location data or not, to function. A lot of 3p applications(on android and iOS) build with features that rely on location **don't need** the actual lat/long, Wi-Fi SSID, BLE SSID data to function. Many inferences can be made without collecting this data and shipping it off to servers.
 
-## What kind of problems the false choice creates
+## What kind of problems it creates
 
 It's not just that you don't get value from giving away location data to major OS platforms, bad as that is, you do get the very accurate Blue Dot and a host of location services. But these services are now being monopolized, and the false choice has now led to the additional proliferation of location data beyond major mobile platform OS providers to a myriad number of other smaller players. In other words its a Product and System Design problem and not just an engineering one.
 
 
-Problems with this model happens way too often in our world, for example, how horrified were you when you learned that a Muslim Prayer app data was bought by the FBI for god know what[2]? Or that a family location tracker app's data leaked[3]? Suffice to say, location management is a shitshow. I would go so far as to say it is to the benefit of Googles, Apples, Samsungs of this world to keep the status quo running as long as they can collect data all day and other apps can't.
+Problems with this model happens way too often in our world, for example, how horrified were you when you learned that a Muslim Prayer app data was bought by the FBI for god know what[2]? Or that a family location tracker app's data leaked[3]? Suffice to say, location management on major OS's is a shitshow. I would go so far as to say it is to the benefit of Googles, Apples, Samsungs of this world to keep the status quo running as long as they can collect data all day and other apps can't.
 
 ## What is a privacy first location inference?
 
-Note, I used the word Inferences not location data (GPS position, IMU traces), I want to make clear that while current demo is demonstrating a *system* for protecting the privacy of the *inference* —  a higher order function like "where is my car"? Are you at home without telling the app where home is? . The inference is what 3p-apps are *really* after not the location data. The demo still needs all those mobile permissions to collect location data that you don't like to give, this will change in future releases.
+Note, I used the word Inferences not location data (accurate GPS position, IMU traces), I want to make clear that while current demo is demonstrating an API for protecting the privacy of the *inference* —  a higher order function like where is my car? Are you at home without telling the app where home is? —  it still needs all those mobile permissions to collect location data that you don't like to give. The whole point is to changes this and ultimately to also do accurate private location inferences. 
 
-For now its a way to spark a conversation about the state of things that can enable more private APIs. At this time all I can guarantee that all the location data collected by Privy Loci, should you use it, would remain private and on device and encrypted on inception and never shipped to a server. Future versions will propose an anonymized infrastructure design to do post processing as well as privacy preserving algorithms that are cross platform and can handle expensive computation.
+For now its a way to spark a conversation about the state of things that can enable more private APIs. At this time all I can guarantee that all the location data collected by Privy Loci, should you use it, would remain private and on device and encrypted on inception and never shipped to a server. Future versions will propose an anonymized infrastructure design any developer and user can use to do post processing in a privacy preserving manner that are cross platform and can handle expensive computation.
 
 My proposal is based on two simple observations when I worked in this domain previously(nothing earth shattering about these):
 
-1. Many inferences that rely on location can be done on the device, with battle tested and well known existing algorithms. Most people spend ~80% of your time at Home or at Work and commuting between those two locations. All this growing data can be used to improve privacy first inferences on devices(See my spiel about apple's equivalent Significant Location in the FAQ below). For e.g. geofencing around routinely visited places, location based reminders, Qibla direction can just tell the 3p app about the event and not disclose the sensitive info, while not refusing them permissions. Like entering and exiting a fence or an area without needing them to necessarily access the location of interest or the center of the geo-fence itself. An adoption of privy loci's model will enable all of those apps to function without privacy concerns, forever and across platforms.
+1. Many inferences, with location accuracy of 1-5 meters, that rely on location can be done on the device, with battle tested and well known existing algorithms. Most people spend ~80% of your time at Home or at Work and commuting between those two locations. All this growing data can be used to improve privacy first inferences on devices(See my spiel about Apple's sort of equivalent Significant Location in the FAQ below). For e.g. geofencing around routinely visited places, location based reminders, Qibla direction can just tell the 3p app about the event and not disclose the sensitive info, while not refusing them permissions. Like entering and exiting a fence or an area without needing them to necessarily access the location of interest or the center of the geo-fence itself. An adoption of privy loci's model will enable all of those apps to function without privacy concerns, forever and across platforms.
 
 
 2. What if you could use simple algorithms and techniques to do most inferences on device and privately? Simple clustering techniques, localized variance reduction techniques(like Pooled Bayesian Inference, Gaussian Mixture models or clustering techniques) can reduce the uncertainty — and run on device —  for many inferences. Simple IMU data based regression/classification algorithms can solve the problem of Motion Detection on the device. Dense urban areas are a concern, but as phones become powerful and GPS becomes ever more accurate, on device inference should become the norm with newer inference methods [Shadow Matching and 3DMA: Paul Groves](https://profiles.ucl.ac.uk/6850), [3DMA NLOS, Stanford GPS LAB](https://www.ion.org/publications/abstract.cfm?articleID=19403), [zephr.xyz](zephr.xyz) that can be done on device or in a privacy-first manner, especially in dense urban areas. Large Wi-Fi/BLE databases can be made anonymous when queried[5] where needed to improve indoors accuracy.
 
 
-Caveats: Many inferences and use-cases will still rely on post-processing location accurately may still need to access and send location to a server to process. e.g. 911 calling(where accuracy and latency of the application is paramount), survey tools, regulatory/legal purposes where a device cannot legally function in XYZ country/place. Yet it may be possible to apply these principles of Privy Loci, which will need more work in building organizational(Govt Orgs, FOSS, People, Activist groups etc) trust and cooperation to fully implement.
+Caveats: Many inferences and use-cases will still rely on post-processing location accurately may still need to access and send location to a server to process. e.g. 911 calling(where accuracy and latency of the application is paramount), survey tools, regulatory/legal purposes where a device cannot legally function in XYZ country/place. There are also cases like place inferences, e.g. phototagging and traffic detection, that need different techniques to implement privacy, yet I believe, they can be solved by additional techniques like federated learning and analogous anonymous p2p tech that, for example apple, uses for its near-by feature.
 
-I am not naive, and I do not hope that Android and iOS will magically change their location stack or permission structure, nor do I plan you to trust this demo app. I believe that with the right kind of  support from Privacy centric FOSS/non-profits, Privy Loci will become a popular alternative and people and app developers could trust it. I want to keep it free to use and dev-supported forever in its current envisioned form. To *hope* for changing the larger tech culture can change, though possible, is IMHO not enough. To hope this latter part, is not challenging the absurd[4]; one has to build and *observe* what happens.
+
+I am not naive, and I do not hope that Android and iOS will magically change their location stack or permission structure, nor do I plan you to trust this app. I believe that with the right kind of organizational support from Privacy centric FOSS/non-profits, Privy Loci will become a popular alternative and people and app developers could trust it. I want to keep it supported forever in its current envisioned form. To *hope* for changing the larger tech culture can change, though possible, is IMHO is not challenging the absurd[4] world.
+
+I am not naive and I do not hope that Android and iOS will magically change their location stack or permission structure, nor do I plan you to trust this app. I believe that with the right kind of organizational support from Privacy centric FOSS/non-profits Privy Loci will become a popular alternative and people and app developers could trust it. I want to keep it supported forever in its current envisioned form. To *hope* for changing the larger tech culture can change, though possible, is IMHO is not challenging the absurd[4] world.
+
 
 
 ## But what about privacy of the location data itself from big players in tech?
@@ -97,19 +95,14 @@ As great as efforts like OSRM, OSMAnd and OpenStreetMaps are, they don't have pa
 - Are the users informed of what we are doing?
 # Other questions you may have
 ## Q. Doesn't Apple already provide a very good privacy model for location data?
-  Apple advertises privacy in a very upfront manner[13][16]. If you believe them and you can afford it, more power to you. There are seemingly some good privacy first products, for example they mention that in the Find My network which uses nearby apple to locate yours, they encrypt the data e2e. They also mention several noteworthy features which are in the spirit of Privy Loci[14] for example:
+  Apple advertises privacy in a very upfront manner[13][16]. If you believe them and you can afford it, more power to you. There are indeed some good products, for example they mention that in the Find My network which uses nearby apple to locate yours, they encrypt the data. They also mention several noteworthy features which are in the spirit of Privy Loci[14] for example:
 
   - On-Device processing of location data where possible.
   - Individual control of what apps have access to Bluetooth data in as recent as iOS 13 and limit preciseness of such inferences later.    
      
-But instead of enumerating extensive privacy features in order to compare them to Privy Loci, lets look at the initial premise of Privy Loci - the False Choice and use that as a test. Can 3P apps, for example, work and render their experience without getting into the false choice trap? Here the evidence is weaker [15], an app could render inferences about, say finding your BLE asset(car), by invoking the map Privacy Surface like in Privy Loci, where the user is assured of privacy, instead iOS limits location access to apps[15][17].  
-    The bigger issue really is the so called Walled Garden of apple. FindMy, iBeacons etc all tech work on Apple devices and to serve its ecosystem. Even if take the privacy guarantee on its face, Apple can wall off features as it likes by doing whatever it wants to the competition.
-
-## Q. Why did you build it on Android no iOS?
-Not yet, but it is planned. I know a bit of android and with AOSP it would be easier to integrate Privy Loci.
-
-## Q. What about desktop environments. There are location services there as well that should be private?
-It has been suggested to me by someone  on the Libre Goelocation Project that one could use a sandbox like Flatpack to implement some cool things from this project in that world[20]. I might just do that at somepoint!
+But instead of enumerating extensive privacy guarantees and comparing them to Privy Loci. Lets look at the initial premise of Privy Loci - the False Choice. Can 3P apps, for example, work and render their experience without getting into the false choice trap? Here the evidence is weaker [15], an app could render inferences about finding your car by invoking the map Privacy Surface like in Privy Loci, where the user is assured of privacy guarantees, instead iOS limits location access[15][17].  
+    The bigger issue really is the so called Walled Garden of apple. FindMy, iBeacons all work on Apple devices and to serve its ecosystem. Even if take the privacy guarantee on its face, Apple can wall off features as it likes by
+    doing whatever it wants to the competition. 
 
 
 # Credits
@@ -118,8 +111,9 @@ It has been suggested to me by someone  on the Libre Goelocation Project that on
 - New by Alice Design from <a href="https://thenounproject.com/browse/icons/term/new/" target="_blank" title="new Icons">Noun Project</a> (CC BY 3.0)
 - Action Overflow by Trevor Dsouza from <a href="https://thenounproject.com/browse/icons/term/action-overflow/" target="_blank" title="Action Overflow Icons">Noun Project</a> (CC BY 3.0)
 - Private Location by Soremba from <a href="https://thenounproject.com/browse/icons/term/private-location/" target="_blank" title="Private Location Icons">Noun Project</a> (CC BY 3.0)
-
------------------------
+- no location by VectorsLab from <a href="https://thenounproject.com/browse/icons/term/no-location/" target="_blank" title="no location Icons">Noun Project</a> (CC BY 3.0)
+- Location by VectorsLab from <a href="https://thenounproject.com/browse/icons/term/location/" target="_blank" title="Location Icons">Noun Project</a> (CC BY 3.0)
+ 
 # References
 [1] Though, this means that we can't use Google's fused provider either for more accurate location, but there is a longer term plan for this.
 
@@ -146,17 +140,8 @@ It has been suggested to me by someone  on the Libre Goelocation Project that on
 [12] https://www.zephr.xyz/
 
 [13] https://www.apple.com/privacy/features/
-
 [14] https://www.apple.com/privacy/docs/Location_Services_White_Paper_Nov_2019.pdf
-
 [15] https://radar.com/blog/understanding-approximate-location-in-ios-14
-
 [16] https://www.apple.com/legal/transparency/pdf/requests-2023-H1-en.pdf
-
 [17] https://stackoverflow.com/questions/76504194/will-location-summary-for-always-allow-location-permission-shown-for-ibeaconre
-
 [18] https://github.com/wiglenet/m8b
-
-[19] https://beacondb.net/
-
-[20] https://docs.flatpak.org/en/latest/conventions.html

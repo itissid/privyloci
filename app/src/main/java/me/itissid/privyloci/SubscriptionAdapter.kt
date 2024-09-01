@@ -34,11 +34,11 @@ class SubscriptionAdapter(
             // For user subscriptions (Places/Assets)
             holder.name.text = subscription.placeTagId.toString() // Replace with actual place/asset name lookup
             holder.subscriptionInfo.text = when (subscription.event.type) {
-                EventType.GEOFENCE_ENTRY -> "Geofence Entry Event"
-                EventType.GEOFENCE_EXIT -> "Geofence Exit Event"
-                EventType.TRACK_BLE_ASSET_DISCONNECTED -> "BLE Asset Disconnected"
-                EventType.TRACK_BLE_ASSET_NEARBY -> "BLE Asset Nearby"
-                EventType.QIBLA_DIRECTION_PRAYER_TIME -> "Qibla Direction Calculated"
+                EventType.GEOFENCE_ENTRY -> "Entry Alert"
+                EventType.GEOFENCE_EXIT -> "Exit Alert"
+                EventType.TRACK_BLE_ASSET_DISCONNECTED -> "Location Tracked after Disconnection" // TODO(Sid):
+                EventType.TRACK_BLE_ASSET_NEARBY -> "Tracking when in range, but not connected"
+                EventType.QIBLA_DIRECTION_PRAYER_TIME -> "Direction to Kibla"
                 EventType.DISPLAY_PINS_MAP_TILE -> "Displaying Pins on Map"
                 else -> "Unknown Event"
             }

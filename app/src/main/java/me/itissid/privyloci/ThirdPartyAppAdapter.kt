@@ -9,8 +9,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import me.itissid.privyloci.datamodels.AppContainer
 
-class AppAdapter(private val apps: List<AppContainer>) :
-    RecyclerView.Adapter<AppAdapter.AppViewHolder>() {
+class ThirdPartyAppAdapter(private val apps: List<AppContainer>) :
+    RecyclerView.Adapter<ThirdPartyAppAdapter.AppViewHolder>() {
 
     class AppViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val appName: TextView = itemView.findViewById(R.id.app_name)
