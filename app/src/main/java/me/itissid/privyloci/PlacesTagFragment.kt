@@ -9,7 +9,17 @@ import me.itissid.privyloci.PlacesAdapter
 import me.itissid.privyloci.R
 import me.itissid.privyloci.datamodels.PlaceTag
 
-class PlacesTagFragment(private val places: List<PlaceTag>) : Fragment() {
+class PlacesTagFragment() : Fragment() {
+    private lateinit var places: List<PlaceTag>
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Retrieve arguments from the Bundle
+        arguments?.let {
+            places = it.getParcelableArrayList(ARG_PLACES) ?: emptyList()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -27,4 +37,16 @@ class PlacesTagFragment(private val places: List<PlaceTag>) : Fragment() {
 
         return view
     }
+
+    companion object {
+        private const val ARG_PLACES = "places"
+
+        @JvmStatic
+        fun newInstance(arrayList: ArrayList<PlaceTag>) =
+            PlacesTagFragment().apply{
+                arguments = Bundle().apply {
+                    putParcelableArrayList(ARG_PLACES, arrayList)
+                }
+            }
+        }
 }

@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+
     <style name="Theme.PrivyLoci" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
 
         <item name="android:windowFullscreen">false</item>
@@ -14,11 +14,5 @@
         <item name="colorSecondary">@color/colorSecondary</item>
         <item name="colorSecondaryVariant">@color/colorSecondaryDark</item>
         <item name="colorOnSecondary">@color/black</item>
-
-    </style>
-    <style name="TextAppearance.App.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
-    </style>
-
-    <style name="TextAppearance.App.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
     </style>
 </resources>

@@ -11,7 +11,20 @@ import me.itissid.privyloci.UserSubscriptionAdapter
 import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.Subscription
 
-class HomeFragment(private val appContainers: List<AppContainer>, private val userSubscriptions: List<Subscription>) : Fragment() {
+class HomeFragment() : Fragment() {
+
+    private lateinit var appContainers: List<AppContainer>
+    private lateinit var userSubscriptions: List<Subscription>
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Retrieve arguments from the Bundle
+        arguments?.let {
+            appContainers = it.getParcelableArrayList(ARG_APP_CONTAINERS) ?: emptyList()
+            userSubscriptions = it.getParcelableArrayList(ARG_USER_SUBSCRIPTIONS) ?: emptyList()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -33,5 +46,19 @@ class HomeFragment(private val appContainers: List<AppContainer>, private val us
          userRecyclerView.adapter = UserSubscriptionAdapter(userSubscriptions)
 
         return view
+    }
+
+    companion object {
+        private const val ARG_APP_CONTAINERS = "app_containers"
+        private const val ARG_USER_SUBSCRIPTIONS = "user_subscriptions"
+
+        @JvmStatic
+        fun newInstance(appContainers: ArrayList<AppContainer>, userSubscriptions: ArrayList<Subscription>) =
+            HomeFragment().apply {
+                arguments = Bundle().apply {
+                    putParcelableArrayList(ARG_APP_CONTAINERS, appContainers)
+                    putParcelableArrayList(ARG_USER_SUBSCRIPTIONS, userSubscriptions)
+                }
+            }
     }
 }

@@ -57,12 +57,14 @@ class MainActivity : AppCompatActivity() {
         bottomNavigationView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
-                    replaceFragment(HomeFragment(appContainers, userSubscriptions), getString(R.string.home))
+                    val fragment = HomeFragment.newInstance(ArrayList(appContainers), ArrayList(userSubscriptions))
+                    replaceFragment(fragment, getString(R.string.home))
                     true
                 }
 
                 R.id.nav_places -> {
-                    replaceFragment(PlacesTagFragment(places), getString(R.string.places_assets))
+                    val fragment = PlacesTagFragment.newInstance(ArrayList(places))
+                    replaceFragment(fragment, getString(R.string.places_assets))
                     true
                 }
 

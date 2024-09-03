@@ -1,10 +1,14 @@
 package me.itissid.privyloci.datamodels
 
+import android.os.Parcelable
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.RawValue
 
+@Parcelize
 data class PlaceTag(
     val id: Int,
     val name: String,
@@ -12,12 +16,13 @@ data class PlaceTag(
     val metadata: String, // Encrypted JSON string
     val createdAt: Long,
     val isActive: Boolean
-)
+) : Parcelable
 
 enum class PlaceTagType {
     PLACE, ASSET
 }
 
+@Parcelize
 data class Subscription(
     val subscriptionId: Int,
     val type: SubscriptionType, // enum {APP, USER}
@@ -27,7 +32,7 @@ data class Subscription(
     val isActive: Boolean,
     val expirationDt: Long?,
     val event: Event
-) {
+) : Parcelable {
     // Custom property to format the timestamp into a date string
     val formattedDate: String
         get() {
@@ -38,10 +43,11 @@ data class Subscription(
         }
 }
 
+@Parcelize
 data class Event(
     val type: EventType,
     val metadata: String?        // Nullable since not all events use this
-)
+): Parcelable
 
 enum class SubscriptionType {
     APP, USER
@@ -99,10 +105,11 @@ enum class AssetType {
 /**
  * Intermediate Data classes for the views.
  */
+@Parcelize
 data class AppContainer(
     val name: String,
     val uniquePlaces: Int,
     val uniqueSubscriptions: Int,
-    val subscriptions: List<Subscription>,
+    val subscriptions:  @RawValue List<Subscription>,
     var isExpanded: Boolean = false
-)
+) : Parcelable

@@ -6,6 +6,7 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.IBinder
+import android.util.TypedValue
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -53,7 +54,6 @@ class PrivyForegroundService : Service() {
 
     private fun createNotification(): Notification {
         val notificationLayout = RemoteViews(packageName, R.layout.persistent_fg_notification)
-
         // Set the text for the notification
         notificationLayout.setTextViewText(R.id.first_line, "2*Apps are listening for events")
         notificationLayout.setTextViewText(R.id.second_line, "4*Events served in last 24 hours")
@@ -64,7 +64,7 @@ class PrivyForegroundService : Service() {
         }
         val playPausePendingIntent = PendingIntent.getService(
             this, 0, playPauseIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+             PendingIntent.FLAG_MUTABLE
         )
         notificationLayout.setOnClickPendingIntent(R.id.action_button, playPausePendingIntent)
 
