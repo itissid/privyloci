@@ -30,8 +30,8 @@ enum class PlaceTagType {
 data class Subscription(
     val subscriptionId: Int,
     val type: SubscriptionType, // enum {APP, USER}
-    val placeTagId: String,
-    val placeTagName: String,
+    val placeTagId: Int,
+    var placeTagName: String,
     val appInfo: String, // JSON string with app details if type is APP
     val createdAt: Long,
     val isActive: Boolean,

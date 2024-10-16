@@ -54,7 +54,7 @@ object DataProvider {
                     "subscriptionId": 1,
                     "eventStateType": "GeofenceEventState",
                     "type": "USER",
-                    "placeTagId": "1",
+                    "placeTagId": 1,
                     "appInfo": "",
                     "createdAt": 1693048323,
                     "isActive": true,
@@ -64,7 +64,7 @@ object DataProvider {
                 {
                     "subscriptionId": 2,
                     "type": "USER",
-                    "placeTagId": "2",
+                    "placeTagId": 2,
                     "appInfo": "",
                     "createdAt": 1693048323,
                     "isActive": true,
@@ -74,7 +74,7 @@ object DataProvider {
                 {
                     "subscriptionId": 3,
                     "type": "APP",
-                    "placeTagId": "1",
+                    "placeTagId": 1,
                     "appInfo": "{ \"app_name\": \"Grocery Shopping App\", \"app_id\": \"com.example.app\" }",
                     "createdAt": 1693048323,
                     "isActive": true,
@@ -84,7 +84,7 @@ object DataProvider {
                 {
                     "subscriptionId": 4,
                     "type": "USER",
-                    "placeTagId": "3",
+                    "placeTagId": 3,
                     "appInfo": "",
                     "createdAt": 1693048323,
                     "isActive": true,
@@ -94,7 +94,7 @@ object DataProvider {
                 {
                     "subscriptionId": 5,
                     "type": "APP",
-                    "placeTagId": "4",
+                    "placeTagId": 4,
                     "appInfo": "{ \"app_name\": \"Car Tracking App\", \"app_id\": \"com.example.dummycarapp\" }",
                     "createdAt": 1693048323,
                     "isActive": true,
@@ -195,6 +195,10 @@ object DataProvider {
         val subscriptionsJson = gson.toJson(dataMap["subscriptions"])
         val subscriptionListType: Type = object : TypeToken<List<Subscription>>() {}.type
         val subscriptionsList: List<Subscription> = gson.fromJson(subscriptionsJson, subscriptionListType)
+        // Add place names to each of the Subscription objects from placeList lookup
+        subscriptionsList.forEach {
+            it.placeTagName = (assetsList+placesList).find { place -> place.id == it.placeTagId }?.name.toString()
+        }
 
         return Triple(placesList, assetsList, subscriptionsList)
     }

@@ -88,7 +88,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PlacesAndAssetScreenPreview() {
     PrivyLociTheme {
-
         val (placesList, assetsList) = DataProvider.getData()
         PlacesAndAssetsScreen(placesList+assetsList)
     }
@@ -116,7 +115,6 @@ fun MainScreen(
             composable(NavItem.Places.route) {
                 PlacesAndAssetsScreen(places)
             }
-            // Add other destinations as needed
         }
     }
 }
