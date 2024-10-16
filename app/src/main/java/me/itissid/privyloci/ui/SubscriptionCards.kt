@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import me.itissid.privyloci.datamodels.AppContainer
+import me.itissid.privyloci.datamodels.EventType
 import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.Subscription
 import java.text.SimpleDateFormat
@@ -119,12 +120,20 @@ fun SubscriptionCard(subscription: Subscription) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Place Name (Replace with actual place name if available)
             Text(
-                text = "Place ID: ${subscription.placeTagId}",
+                text = "${subscription.placeTagName}(id: ${subscription.placeTagId})",
                 style = MaterialTheme.typography.headlineSmall
             )
             // Event Type
             Text(
-                text = subscription.eventType.name,
+                text = when(subscription.eventType) {
+                    EventType.GEOFENCE_ENTRY-> "Entry Alert"
+                    EventType.GEOFENCE_EXIT -> "Exit Alert"
+                    EventType.TRACK_BLE_ASSET_DISCONNECTED -> "Location Tracked after Disconnection"
+                    EventType.TRACK_BLE_ASSET_NEARBY -> "Tracking when in range, but not connected"
+                    EventType.QIBLA_DIRECTION_PRAYER_TIME -> "Direction to Kibla"
+                    EventType.DISPLAY_PINS_MAP_TILE -> "Displaying Pins on Map"
+                    else -> "Unknown Event"
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 4.dp)
             )

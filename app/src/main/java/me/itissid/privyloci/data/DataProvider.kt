@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken
 import me.itissid.privyloci.datamodels.*
 import java.lang.reflect.Type
 
+// A temporary data provider for testing the application.
 object DataProvider {
 
     private val gson = Gson()
