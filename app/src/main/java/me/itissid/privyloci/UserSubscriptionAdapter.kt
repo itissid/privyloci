@@ -26,7 +26,7 @@ class UserSubscriptionAdapter(private val subscriptions: List<Subscription>) :
     override fun onBindViewHolder(holder: UserSubscriptionViewHolder, position: Int) {
         val subscription = subscriptions[position]
         holder.placeName.text = "Place ID: ${subscription.placeTagId}" //TODO(Sid): Replace with actual place name when hooking in the data model
-        holder.eventType.text = subscription.event.type.name
+        holder.eventType.text = subscription.eventType.name
         holder.dateTime.text = subscription.formattedDate // Format as needed
     }
 

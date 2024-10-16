@@ -2,18 +2,61 @@ package me.itissid.privyloci
 
 import HomeFragment
 import PlacesTagFragment
+import android.content.Context
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.system.Os.open
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.view.ContextThemeWrapper
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.currentComposer
+import androidx.compose.runtime.currentCompositionLocalContext
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import androidx.navigation.compose.composable
+
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.compose.NavHost
+
+import kotlinx.coroutines.withContext
+import me.itissid.privyloci.data.DataProvider
 
 
 import me.itissid.privyloci.datamodels.AppContainer
@@ -21,7 +64,16 @@ import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.SubscriptionType
 import me.itissid.privyloci.service.startMyForegroundService
+import me.itissid.privyloci.ui.HomeScreen
 import me.itissid.privyloci.util.Logger
+
+import me.itissid.privyloci.ui.LocationPermissionScreen
+import me.itissid.privyloci.ui.PlacesAndAssetsScreen
+import me.itissid.privyloci.ui.theme.PrivyLociTheme
+import java.io.BufferedReader
+import java.io.File
+import java.io.FileReader
+import java.io.InputStreamReader
 
 // TODO(Sid): Replace with real data after demo.
 data class MockData(
@@ -82,7 +134,13 @@ class MainActivity : AppCompatActivity() {
             requestNotificationPermission()
         } else {
             // Permission is already granted, start the service
-            startMyForegroundService(this)
+            // TODO(Sid): Check and start all services for managing subscriptions.
+            if (appContainers.isNotEmpty() || userSubscriptions.isNotEmpty()) {
+                userSubscriptions.find { subscription -> subscription.isValid() && subscription.isTypeLocation()}?.let {
+                        startMyForegroundService(this)
+                        Logger.d("MainActivity", "Some valid location subscriptions found")
+                }?.run{ Logger.d("MainActivity", "Some valid location subscriptions found") }
+            }
         }
     }
 
@@ -97,31 +155,6 @@ class MainActivity : AppCompatActivity() {
     private fun loadDataFromJson(): Triple<List<PlaceTag>, List<PlaceTag>, List<Subscription>> {
         val jsonString = assets.open("mock_data.json").bufferedReader().use { it.readText() }
         return parseJsonToData(jsonString)
-    }
-
-    private fun parseJsonToData(jsonString: String): Triple<List<PlaceTag>, List<PlaceTag>, List<Subscription>> {
-        val gson = Gson()
-
-        // Define the type tokens for each section of the JSON
-        val placeTagListType = object : TypeToken<List<PlaceTag>>() {}.type
-        val subscriptionListType = object : TypeToken<List<Subscription>>() {}.type
-
-        // Parse the JSON
-        val jsonData = gson.fromJson<Map<String, Any>>(jsonString, Map::class.java)
-
-        // Extract and parse places
-        val placesJson = gson.toJson(jsonData["places"])
-        val places: List<PlaceTag> = gson.fromJson(placesJson, placeTagListType)
-
-        // Extract and parse assets
-        val assetsJson = gson.toJson(jsonData["assets"])
-        val assets: List<PlaceTag> = gson.fromJson(assetsJson, placeTagListType)
-
-        // Extract and parse subscriptions
-        val subscriptionsJson = gson.toJson(jsonData["subscriptions"])
-        val subscriptions: List<Subscription> = gson.fromJson(subscriptionsJson, subscriptionListType)
-
-        return Triple(places, assets, subscriptions)
     }
 
 
@@ -192,4 +225,145 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+}
+
+private fun parseJsonToData(jsonString: String): Triple<List<PlaceTag>, List<PlaceTag>, List<Subscription>> {
+    val gson = Gson()
+
+    // Define the type tokens for each section of the JSON
+    val placeTagListType = object : TypeToken<List<PlaceTag>>() {}.type
+    val subscriptionListType = object : TypeToken<List<Subscription>>() {}.type
+
+    // Parse the JSatN
+    val jsonData = gson.fromJson<Map<String, Any>>(jsonString, Map::class.java)
+
+    // Extract and parse places
+    val placesJson = gson.toJson(jsonData["places"])
+    val places: List<PlaceTag> = gson.fromJson(placesJson, placeTagListType)
+
+    // Extract and parse assets
+    val assetsJson = gson.toJson(jsonData["assets"])
+    val assets: List<PlaceTag> = gson.fromJson(assetsJson, placeTagListType)
+
+    // Extract and parse subscriptions
+    val subscriptionsJson = gson.toJson(jsonData["subscriptions"])
+    val subscriptions: List<Subscription> = gson.fromJson(subscriptionsJson, subscriptionListType)
+
+    return Triple(places, assets, subscriptions)
+}
+
+@Preview(showBackground = true, widthDp = 320, heightDp = 640, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(showBackground = true, widthDp = 320, heightDp = 640)
+@Composable
+fun PlacesAndAssetScreenPreview() {
+    PrivyLociTheme {
+        val context = LocalContext.current
+        val jsonString =  readAssetFile(context, "mock_data.json")
+
+        val (placesList, assetsList, subscriptionsList) = parseJsonToData(jsonString)
+        PlacesAndAssetsScreen(placesList)
+    }
+}
+
+fun readAssetFile(context: Context, fileName: String): String {
+    return context.assets.open(fileName).use { inputStream ->
+        BufferedReader(InputStreamReader(inputStream)).use { bufferedReader ->
+            bufferedReader.readText()
+        }
+    }
+}
+
+
+@Composable
+fun MainScreen(
+    appContainers: List<AppContainer>,
+    userSubscriptions: List<Subscription>,
+    places: List<PlaceTag>
+) {
+    val navController = rememberNavController()
+    Scaffold(
+        topBar = { TopBar() },
+        bottomBar = { BottomNavBar(navController) }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = NavItem.Home.route,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+//            composable("home") { HomeScreen(appContainers, userSubscriptions) }
+//            composable("places") { PlacesAndAssetsScreen(places) }
+            composable(NavItem.Home.route) {
+                HomeScreen(appContainers, userSubscriptions)
+            }
+            composable(NavItem.Places.route) {
+                PlacesAndAssetsScreen(places)
+            }
+            // Add other destinations as needed
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TopBar() {
+    TopAppBar(
+        title = { Text("Privy Loci") },
+        actions = {
+            IconButton(onClick = { /* Handle menu action */ }) {
+                Icon(Icons.Filled.Menu, contentDescription = "Menu")
+            }
+        }
+    )
+}
+
+@Composable
+fun ScrollContent(innerPadding: PaddingValues) {
+    TODO("Not yet implemented")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BottomNavBar(navController: NavController) {
+    val items = listOf(
+        NavItem.Home,
+        NavItem.Places,
+        // Add other items as needed
+    )
+    NavigationBar {
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = { Icon(item.icon, contentDescription = item.title) },
+                label = { Text(item.title) },
+                selected = currentRoute(navController) == item.route,
+                onClick = {
+                    navController.navigate(item.route) {
+                        // Pop up all the screens up to but not including the start destination.
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        // Avoid multiple copies of the same destination when re-selecting the same item
+                        launchSingleTop = true
+                        // Restore state when re-selecting a previously selected item
+                        restoreState = true
+                    }
+                }
+            )
+        }
+    }
+}
+
+// NavItem.kt
+
+sealed class NavItem(val route: String, val icon: ImageVector, val title: String) {
+    object Home : NavItem("home", Icons.Filled.Home, "Home")
+    object Places : NavItem("places", Icons.Filled.Place, "Places")
+    // Add other items as needed
+}
+
+
+@Composable
+fun currentRoute(navController: NavController): String? {
+    val navBackStackEntry by navController.currentBackStackEntryFlow.collectAsState(initial=null )
+    return navBackStackEntry?.destination?.route
 }

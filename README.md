@@ -21,8 +21,8 @@ The bigger idea is to build a foundational document rethinking the problem and c
 to enable location products. FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
 
 # What PrivyLoci is not?
-- In this demo I am not solving for accurate private GPS positioning. But this is entirely possible and pivotal to gaining complete privacy. At the moment I do use Google's Fused Location Provider[6] for the demo.
-- It is not an app to replace location infrastructure/services like those that use a combination of one or more of AGPS, Wifi/BLE databases[6]. Though building open but private Wifi/BLE networks and is possible[5] it is not the only way to provide accurate location[12][11] and thus the inference.
+- In this demo I am not solving for accurate private GPS positioning. But this is entirely possible and pivotal to gaining complete privacy[19]. At the moment I do use Google's Fused Location Provider[6] for the demo. 
+- It is not an app to replace location infrastructure/services like those that use a combination of one or more of AGPS, Wifi/BLE databases[6][19]. Though building open but private Wifi/BLE networks and is possible[5][20] it is not the only way to provide accurate location[12][11] and thus the inference.
 - It is not an app to replace other location centric apps. On the contrary it empowers more of them to be created.
 
 # Introduction
@@ -145,3 +145,7 @@ But instead of enumerating extensive privacy guarantees and comparing them to Pr
 [16] https://www.apple.com/legal/transparency/pdf/requests-2023-H1-en.pdf
 [17] https://stackoverflow.com/questions/76504194/will-location-summary-for-always-allow-location-permission-shown-for-ibeaconre
 [18] https://github.com/wiglenet/m8b
+
+[19] https://github.com/microg/UnifiedNlp
+
+[20] https://github.com/n76/DejaVu?tab=readme-ov-file

@@ -10,7 +10,7 @@
 ---------------------------------------------
 
 # Summary
-- **Scope**: Demo of Privy Loci is a privacy-first location inference app that allows users to manage their location data and subscriptions to third-party apps.
+- **Scope**: Demo of Privy Loci is a privacy-first location inference app that allows users to manage their location data and subscriptions from willing third-party apps.
 - **Usecases**: There are many. I will note ones I use. 
 - **Requirements**: The prioritized functional and non-functional requirements ensure that the core goals of Privy Loci are met.
 - **Documentation**: Categorizing documentation helps keep all the details organized, aiding in both current development and future maintenance.
@@ -74,7 +74,7 @@
 
 6. **Apps should be able to extend using a simple plugin API**
     - **Description**: Allow apps to extend the functionality of Privy Loci by providing a plugin API. This is useful for a myriad number of use cases
-   e.g. correct language and currency for region, regulatory purposes(can you operate in a country), 
+   e.g. correct language and currency for region, regulatory purposes(can you operate in a country).
     - 
 7. **Qibla Direction Calculation (High Priority, Important)**
   - **Description**: Provide a Qibla direction based on the user's current location without associating it with any place/tag.
@@ -229,25 +229,26 @@
       - If there is subscription created implement an SMD interface to figure out when to collect location.
 
 8. **Geofence Algorithm**:
+    0. Permission display to ask user.  
     1. Initializethe State upon creation to be IN / OUT with the first accurate(<10m) LU. If there is no accurate LU
-       or we can't collect, we could ask the user to tell us.
+      or we can't collect, we could ask the user to tell us.
     2. Pseudocode for both entry and exit events with an additional debounce time:
-    ```
-    if (mrs == IN):
-      if (user is outside geofence):
-        if (now.timestamp - mrs_change_ts > debounce_time):
-          if event_type == GEOFENCE_EXIT:
-              trigger_event()
-          mrs = OUT  # Do these both after the event triggers in a callback. 
-          mrs_change_ts = now.timestamp
-    else:
-      if (user is inside geofence):
-        if (now.timestamp - mrs_change_ts > debounce_time):
-          if event_type == GEOFENCE_ENTRY:
-              trigger_event()
-          mrs = IN # Do these both after the event triggers in a callback. 
-          mrs_change_ts = now.timestamp
-    ```
+   ```
+   if (mrs == IN): # mrs is short for most_recent_state
+     if (user is outside geofence):
+       if (now.timestamp - mrs_change_ts > debounce_time):
+         if event_type == GEOFENCE_EXIT:
+             trigger_event()
+         mrs = OUT  # Do these both after the event triggers in a callback. 
+         mrs_change_ts = now.timestamp
+   else:
+     if (user is inside geofence):
+       if (now.timestamp - mrs_change_ts > debounce_time):
+         if event_type == GEOFENCE_ENTRY:
+             trigger_event()
+         mrs = IN # Do these both after the event triggers in a callback. 
+         mrs_change_ts = now.timestamp
+   ```
 9.  For Wifi/BLE/IR Asset tracking logic(asset can connect or disconnect):
     - **Data model**:
         ```
@@ -265,13 +266,13 @@
     - TODO(Sid): State model.
     - TODO(Sid): Add a simple connect/disconnect algorithm for tracking location of asset
 
-9. Future Enhancements:
+10. Future Enhancements:
     - No GPS/Wifi: Tell user his indoor geofence may not be working ok.
     - Battery Opt: Consider implementing dwell time logic or something like " > 10 miles" logic to collect location update at a lower frequency.
     - Noise Reduction measures: Wifi/BLE + IMU + GPS SNR in a simple Naive bayes model for more accuracy indoors.
     - For high rises and really dense areas GPS SNR or Barometer could also be useful.
 
-7. **Basic Logs Display**
+12. **Basic Logs Display**
 
 #### **Phase 2: Enhanced Privacy Features**
 1. **Private Map Tile Display**

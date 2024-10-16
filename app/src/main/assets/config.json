@@ -1,0 +1,12 @@
+{
+  "debounce_time": 60000,  // Time in milliseconds (e.g., 1 minutes)
+  "notification": {
+    "max_events_displayed": 3,
+    "persistent_notification_id": "privy_loci_foreground",
+    "event_grouping": true
+  },
+  "geofence": {
+    "radius": 100,  // Radius in meters
+    "expiration_duration": -1  // Geofence expiration (in milliseconds), -1 for never
+  }
+}

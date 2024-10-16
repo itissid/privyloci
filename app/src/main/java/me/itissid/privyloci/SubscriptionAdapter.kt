@@ -33,7 +33,7 @@ class SubscriptionAdapter(
         if (isUserSubscription) {
             // For user subscriptions (Places/Assets)
             holder.name.text = subscription.placeTagId.toString() // Replace with actual place/asset name lookup
-            holder.subscriptionInfo.text = when (subscription.event.type) {
+            holder.subscriptionInfo.text = when (subscription.eventType) {
                 EventType.GEOFENCE_ENTRY -> "Entry Alert"
                 EventType.GEOFENCE_EXIT -> "Exit Alert"
                 EventType.TRACK_BLE_ASSET_DISCONNECTED -> "Location Tracked after Disconnection" // TODO(Sid):
