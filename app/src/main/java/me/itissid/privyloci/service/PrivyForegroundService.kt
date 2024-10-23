@@ -13,7 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import me.itissid.privyloci.R
 import me.itissid.privyloci.util.Logger
-// The sco
+
 // Should clients(any activity)  bind to this service to communicate with it ?
 // I think the only reason to do binding is to start/stop the persistent notification on some kind of an event. I am not sure i want this.
 // I want the FG service to  collect the location and the persistent notification to display to the user that we are doing so.

@@ -72,7 +72,7 @@ enum class SubscriptionType {
 }
 
 enum class EventType {
-    GEOFENCE_ENTRY, // TODO(Sid):
+    GEOFENCE_ENTRY,
     GEOFENCE_EXIT,
     TRACK_BLE_ASSET_DISCONNECTED,
     TRACK_BLE_ASSET_NEARBY,

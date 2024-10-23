@@ -44,9 +44,9 @@ fun getDarkColorScheme(): ColorScheme {
         secondary = getColorFromXml(R.color.colorSecondary),    // #03DAC5 (fallback to colors.xml since not defined in colors-night.xml)
         onSecondary = getColorFromXml(R.color.black),           // Black text on secondary
         background = Color(0xFF121212),                         // Custom background for dark mode
-        onBackground = Color.White,                             // White text on dark background
+        onBackground = getColorFromXml(R.color.white),                              // White text on dark background
         surface = Color(0xFF121212),                            // Dark surface
-        onSurface = Color.White                                 // White text on dark surface
+        onSurface =  getColorFromXml(R.color.white)                              // White text on dark surface
     )
 }
 @Composable

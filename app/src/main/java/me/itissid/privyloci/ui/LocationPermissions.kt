@@ -51,23 +51,6 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
  */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun LocationPermissions(text: String, rationale: String, locationState: PermissionState) {
-    LocationPermissions(
-        text = text,
-        rationale = rationale,
-        locationState = rememberMultiplePermissionsState(
-            permissions = listOf(
-                locationState.permission
-            )
-        )
-    )
-}
-
-/**
- * Simple screen that manages the location permission state
- */
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
 fun LocationPermissions(text: String, rationale: String, locationState: MultiplePermissionsState) {
     var showRationale by remember(locationState) {
         mutableStateOf(false)

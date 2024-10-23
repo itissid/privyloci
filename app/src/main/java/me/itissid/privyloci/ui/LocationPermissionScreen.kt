@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,13 +55,6 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.google.android.catalog.framework.annotations.Sample
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 
-@RequiresApi(Build.VERSION_CODES.Q)
-@Sample(
-    name = "Location - Permissions",
-    description = "This Sample demonstrate best practices for Location Permission",
-    documentation = "https://developer.android.com/training/location/permissions",
-    tags = ["permissions, location"],
-)
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun LocationPermissionScreen() {
@@ -88,6 +82,16 @@ fun LocationPermissionScreen() {
     var rationaleState by remember {
         mutableStateOf<RationaleState?>(null)
     }
+//    LaunchedEffect(Unit) {
+//        if (!locationPermissionState.status.isGranted) {
+//            locationPermissionState.launchPermissionRequest()
+//        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            if (!bgLocationPermissionState.status.isGranted) {
+//                bgLocationPermissionState.launchPermissionRequest()
+//            }
+//        }
+//    }
 
     Box(
         Modifier

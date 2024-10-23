@@ -1,7 +1,6 @@
 package me.itissid.privyloci
 
 import android.content.res.Configuration
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,8 +16,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,6 +42,7 @@ import me.itissid.privyloci.util.Logger
 import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
+import me.itissid.privyloci.ui.AdaptiveIcon
 
 // TODO(Sid): Replace with real data after demo.
 data class MockData(
@@ -75,7 +73,7 @@ class MainActivity : ComponentActivity() {
                         MainScreen(
                             appContainers = appContainers,
                             userSubscriptions = userSubscriptions,
-                            places = places
+                            places = places,
                         )
                     }
             }
@@ -97,11 +95,12 @@ fun PlacesAndAssetScreenPreview() {
 fun MainScreen(
     appContainers: List<AppContainer>,
     userSubscriptions: List<Subscription>,
-    places: List<PlaceTag>
+    places: List<PlaceTag>,
 ) {
+//    LocationPermissionScreen()
     val navController = rememberNavController()
     Scaffold(
-        topBar = { TopBar() },
+        topBar = { TopBar(false, onLocationIconClick = {}) },
         bottomBar = { BottomNavBar(navController) }
     ) { innerPadding ->
         NavHost(
@@ -122,13 +121,17 @@ fun MainScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar() {
+fun TopBar(
+    locationPermissionGranted: Boolean = false,
+    onLocationIconClick: () -> Unit
+    ) {
     TopAppBar(
         title = { Text("Privy Loci") },
         actions = {
-            IconButton(onClick = { /* Handle menu action */ }) {
-                Icon(Icons.Filled.Menu, contentDescription = "Menu")
+            IconButton(onClick = onLocationIconClick) {
+                AdaptiveIcon(locationPermissionGranted =locationPermissionGranted)
             }
+            Icon(Icons.Filled.Menu, contentDescription = "Menu")
         }
     )
 }
