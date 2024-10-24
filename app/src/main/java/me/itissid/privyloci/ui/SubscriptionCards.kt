@@ -24,6 +24,7 @@ import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.EventType
 import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.Subscription
+import me.itissid.privyloci.datamodels.displayName
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,7 +34,9 @@ fun AppCard(
     appContainer: AppContainer,
     isExpanded: Boolean,
     onMenuClick: () -> Unit,
-    onCardClick: () -> Unit
+    onCardClick: () -> Unit,
+    locationPermissionGranted: Boolean,
+    onLocationIconClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -75,7 +78,7 @@ fun AppCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 Column {
                     appContainer.subscriptions.forEach { subscription ->
-                        SubscriptionCard(subscription = subscription)
+                        SubscriptionCard(subscription = subscription, locationPermissionGranted, onLocationIconClick)
                     }
                 }
             }
@@ -109,7 +112,12 @@ fun PlaceCard(placeTag: PlaceTag) {
 }
 
 @Composable
-fun SubscriptionCard(subscription: Subscription) {
+fun SubscriptionCard(
+    subscription: Subscription,
+    locationPermissionGranted: Boolean,
+    onLocationIconClick: () -> Unit
+) {
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -125,15 +133,7 @@ fun SubscriptionCard(subscription: Subscription) {
             )
             // Event Type
             Text(
-                text = when(subscription.eventType) {
-                    EventType.GEOFENCE_ENTRY-> "Entry Alert"
-                    EventType.GEOFENCE_EXIT -> "Exit Alert"
-                    EventType.TRACK_BLE_ASSET_DISCONNECTED -> "Location Tracked after Disconnection"
-                    EventType.TRACK_BLE_ASSET_NEARBY -> "Tracking when in range, but not connected"
-                    EventType.QIBLA_DIRECTION_PRAYER_TIME -> "Direction to Kibla"
-                    EventType.DISPLAY_PINS_MAP_TILE -> "Displaying Pins on Map"
-                    else -> "Unknown Event"
-                },
+                text = subscription.eventType.displayName,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -143,6 +143,11 @@ fun SubscriptionCard(subscription: Subscription) {
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 4.dp)
             )
+            if (subscription.isTypeLocation() && !locationPermissionGranted) {
+                IconButton(onClick = onLocationIconClick) {
+                    AdaptiveIcon(locationPermissionGranted = false)
+                }
+            }
         }
     }
 }

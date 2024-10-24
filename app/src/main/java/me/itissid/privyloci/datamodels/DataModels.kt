@@ -80,6 +80,18 @@ enum class EventType {
     DISPLAY_PINS_MAP_TILE
 }
 
+val EventType.displayName: String
+    get() = when (this) {
+        EventType.GEOFENCE_ENTRY -> "Entry Alert"
+        EventType.GEOFENCE_EXIT -> "Exit Alert"
+        EventType.TRACK_BLE_ASSET_DISCONNECTED -> "Location Tracked after Disconnection"
+        EventType.TRACK_BLE_ASSET_NEARBY -> "Tracking when in range, but not connected"
+        EventType.QIBLA_DIRECTION_PRAYER_TIME -> "Direction to Qibla"
+        EventType.DISPLAY_PINS_MAP_TILE -> "Displaying Pins on Map"
+        else -> "Unknown Event"
+    }
+
+
 @Serializable
 sealed class EventState {
     abstract val subscriptionId: Int

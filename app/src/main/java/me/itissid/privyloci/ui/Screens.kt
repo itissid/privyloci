@@ -22,7 +22,9 @@ import me.itissid.privyloci.datamodels.Subscription
 @Composable
 fun HomeScreen(
     appContainers: List<AppContainer>,
-    userSubscriptions: List<Subscription>
+    userSubscriptions: List<Subscription>,
+    locationPermissionGranted: Boolean,
+    onLocationIconClick: () -> Unit
 ) {
     // Remember the expanded state for each app
     val expandedStateMap = remember { mutableStateMapOf<String, Boolean>() }
@@ -44,13 +46,16 @@ fun HomeScreen(
             AppCard(
                 appContainer = appContainer,
                 isExpanded = isExpanded,
+
                 onMenuClick = {
                     // Handle menu click (e.g., show options to delete or pause subscriptions)
                 },
                 onCardClick = {
                     // Toggle expansion state
                     expandedStateMap[appContainer.name] = !isExpanded
-                }
+                },
+                locationPermissionGranted=locationPermissionGranted,
+                onLocationIconClick=onLocationIconClick
             )
         }
         // User Subscriptions Section
@@ -63,7 +68,11 @@ fun HomeScreen(
             )
         }
         items(userSubscriptions) { subscription ->
-            SubscriptionCard(subscription = subscription)
+            SubscriptionCard(
+                subscription = subscription,
+                locationPermissionGranted = locationPermissionGranted,
+                onLocationIconClick = onLocationIconClick,
+            )
         }
     }
 }

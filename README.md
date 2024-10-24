@@ -1,4 +1,4 @@
-Privy Loci: A Privacy First Location Inference API (Demo: September'24) 
+Privy Loci: A Privacy First Location Inference API (Demo: October'24)
 ===================================================
 
 Privy Loci is an proposal for:
@@ -16,6 +16,8 @@ To think that the idea is, “well, isn't this just a technical issue like diffe
 
 # Is it meant to be an App? How can I use it?
 Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service an Infrastructure as a Service(IaaS) on device to enable users and and 3p-apps alike. The demo is for giving you a feel for what the experience is like. 
+
+![Permissions and General UI](./docs/screenshots/Screen_recording_permissions.gif)
 
 The bigger idea is to build a foundational document rethinking the problem and core algorithms
 to enable location products. FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
