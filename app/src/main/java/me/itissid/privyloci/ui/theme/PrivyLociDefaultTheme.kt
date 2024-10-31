@@ -1,7 +1,10 @@
 package me.itissid.privyloci.ui.theme
 
+import android.app.Activity
 import android.os.Build
+import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -10,8 +13,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import me.itissid.privyloci.R
 
 @Composable
@@ -20,52 +31,42 @@ fun getColorFromXml(colorResId: Int): Color {
     return Color(ContextCompat.getColor(context, colorResId))
 }
 
-@Composable
-fun getLightColorScheme(): ColorScheme {
-    return lightColorScheme(
-        primary = getColorFromXml(R.color.colorPrimary),        // #6200EE
-        onPrimary = getColorFromXml(R.color.colorOnPrimary),    // #FFFFFF
-        primaryContainer = getColorFromXml(R.color.colorPrimaryDark), // #3700B3
-        secondary = getColorFromXml(R.color.colorSecondary),    // #03DAC5
-        onSecondary = getColorFromXml(R.color.black),           // Assuming black color defined in XML
-        background = getColorFromXml(R.color.white),            // White background
-        onBackground = getColorFromXml(R.color.black),          // Black text on background
-        surface = getColorFromXml(R.color.white),               // White surface
-        onSurface = getColorFromXml(R.color.black)              // Black text on surface
-    )
-}
+// Define your custom typography
+val CustomTypography = Typography(
+    displaySmall = TextStyle(fontWeight = FontWeight.W100, fontSize = 96.sp),
+    labelLarge = TextStyle(fontWeight = FontWeight.W600, fontSize = 14.sp),
+    bodyMedium = TextStyle(fontSize = 16.sp)
 
-@Composable
-fun getDarkColorScheme(): ColorScheme {
-    return darkColorScheme(
-        primary = getColorFromXml(R.color.colorPrimary),        // #BB86FC (defined in colors-night.xml)
-        onPrimary = getColorFromXml(R.color.colorOnPrimary),    // #000000 (Black text on primary)
-        primaryContainer = getColorFromXml(R.color.colorPrimaryDark), // #3700B3
-        secondary = getColorFromXml(R.color.colorSecondary),    // #03DAC5 (fallback to colors.xml since not defined in colors-night.xml)
-        onSecondary = getColorFromXml(R.color.black),           // Black text on secondary
-        background = Color(0xFF121212),                         // Custom background for dark mode
-        onBackground = getColorFromXml(R.color.white),                              // White text on dark background
-        surface = Color(0xFF121212),                            // Dark surface
-        onSurface =  getColorFromXml(R.color.white)                              // White text on dark surface
-    )
-}
+)
+
 @Composable
 fun PrivyLociTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        // Use dynamic color scheme for API 31+
-        val context = LocalContext.current
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    } else {
-        // Use predefined color scheme for lower API levels
-        if (darkTheme) getDarkColorScheme() else getLightColorScheme()
+    Log.d("PrivyLociTheme", "darkTheme: $darkTheme, dynamicColor: $dynamicColor")
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+
+        darkTheme -> darkScheme
+        else -> lightScheme
+    }
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.primary.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        content = content
+        content = content,
+        typography = CustomTypography
     )
-
 }

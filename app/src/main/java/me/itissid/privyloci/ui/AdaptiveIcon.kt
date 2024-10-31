@@ -16,15 +16,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import me.itissid.privyloci.R
-import me.itissid.privyloci.ui.theme.getDarkColorScheme
-import me.itissid.privyloci.ui.theme.getLightColorScheme
+import me.itissid.privyloci.ui.theme.darkScheme
+import me.itissid.privyloci.ui.theme.lightScheme
 
 @Composable
 fun AdaptiveIcon(locationPermissionGranted: Boolean) {
     val tint =  if(locationPermissionGranted) {
-        if (isSystemInDarkTheme()) getDarkColorScheme().onSurface else getLightColorScheme().onSurface
+        if (isSystemInDarkTheme()) darkScheme.onSurface else lightScheme.onSurface
     } else {
-        if(isSystemInDarkTheme()) getDarkColorScheme().error else getLightColorScheme().error
+        if (isSystemInDarkTheme()) darkScheme.error else lightScheme.error
     }
     val scale by if (!locationPermissionGranted) {
         val infiniteTransition = rememberInfiniteTransition()

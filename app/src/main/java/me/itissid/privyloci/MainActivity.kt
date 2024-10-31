@@ -1,7 +1,11 @@
 package me.itissid.privyloci
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,10 +31,12 @@ import androidx.navigation.compose.composable
 
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -50,6 +56,7 @@ import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
 import me.itissid.privyloci.ui.AdaptiveIcon
 import me.itissid.privyloci.ui.LocationPermissionRationaleDialogue
+import me.itissid.privyloci.ui.PermissionDeniedScreen
 
 // TODO(Sid): Replace with real data after demo.
 data class MockData(
@@ -80,13 +87,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             PrivyLociTheme {
                 MainScreenWrapper(
-                            appContainers = appContainers,
-                            userSubscriptions = userSubscriptions,
+                    appContainers = appContainers,
+                    userSubscriptions = userSubscriptions,
                     places = places,
-                        )
-                    }
+                )
             }
         }
+    }
 }
 
 
@@ -97,8 +104,9 @@ fun MainScreenWrapper(
     userSubscriptions: List<Subscription>,
     places: List<PlaceTag>,
 ) {
+    val context = LocalContext.current as Activity
 
-    var showRationaleDialog by remember { mutableStateOf(false) }
+    var rationaleState by remember { mutableStateOf(false) }
 
     val foregroundLocationPermissionState = rememberMultiplePermissionsState(
         permissions = listOf(
@@ -107,55 +115,58 @@ fun MainScreenWrapper(
         )
     )
 
-//    val backgroundLocationPermissionState = rememberPermissionState(
-//        permission = Manifest.permission.ACCESS_BACKGROUND_LOCATION
-//    )
-//
-//    val backgroundLocationGranted = backgroundLocationPermissionState.let {
-//        it.permission == Manifest.permission.ACCESS_BACKGROUND_LOCATION && it.status.isGranted
-//    }
+    if (!foregroundLocationPermissionState.allPermissionsGranted) {
+        Log.d(TAG, "PERMISSION NOT GRANTED")
+    } else {
+        Log.d(TAG, "PERMISSION GRANTED")
+    }
+    if (foregroundLocationPermissionState.shouldShowRationale) {
+        Log.d(TAG, "SHOULD SHOW RATIONALE")
+    } else {
+        Log.d(TAG, "SHOULD NOT SHOW RATIONALE")
+    }
 
-    // Determine if both foreground and background permissions are granted.
-//    val foregroundLocationGranted = foregroundLocationPermissionState.permissions.any {
-//        it.permission == Manifest.permission.ACCESS_FINE_LOCATION && it.status.isGranted
-//    } || foregroundLocationPermissionState.permissions.any {
-//        it.permission == Manifest.permission.ACCESS_COARSE_LOCATION && it.status.isGranted
-//    }
+    if (rationaleState) {
+        Log.d(TAG, "RATIONALE STATE")
+    } else {
+        Log.d(TAG, "NO RATIONALE STATE")
+    }
 
+    // Modify the rationalState in the click handler
     val onLocationIconClick = {
-        if (!foregroundLocationPermissionState.allPermissionsGranted) {
-            if (foregroundLocationPermissionState.shouldShowRationale) {
-                showRationaleDialog = true
-            } else {
-                foregroundLocationPermissionState.launchMultiplePermissionRequest()
-            }
+        if (foregroundLocationPermissionState.shouldShowRationale) {
+            Log.w(TAG, "Setting rationale state to true")
+            rationaleState = true
+        } else {
+            Log.w(TAG, "Launching multiple permission request")
+            foregroundLocationPermissionState.launchMultiplePermissionRequest()
+            // TODO: The system can choose to ignore this request. Raise a warning for the user.
         }
     }
 
-//    val locationPermissionGranted = foregroundLocationGranted //&& backgroundLocationGranted
-//    if(foreground)
-    if (foregroundLocationPermissionState.shouldShowRationale) {
+    // read the state modified in the click handler
+    if (rationaleState) {
         LocationPermissionRationaleDialogue(
             onConfirm = {
-                Log.w(TAG, "Launching multiple permission request")
+                Log.w(TAG, "Launching multiple permission request from onConfirm")
                 foregroundLocationPermissionState.launchMultiplePermissionRequest()
-//                showRationaleDialog = true
+                rationaleState = false
             },
             onDismiss = {
-//                showRationaleDialog = true
+                rationaleState = false
             }
         )
     }
-
+    // Now we want to
     MainScreen(
-        appContainers = appContainers,
-        userSubscriptions = userSubscriptions,
-        places = places,
-        locationPermissionGranted = foregroundLocationPermissionState.allPermissionsGranted,
-        onLocationIconClick = onLocationIconClick
+        appContainers,
+        userSubscriptions,
+        places,
+        foregroundLocationPermissionState.allPermissionsGranted,
+        onLocationIconClick
     )
-
 }
+
 
 @Composable
 fun MainScreen(
@@ -205,10 +216,19 @@ fun TopBar(
     TopAppBar(
         title = { Text("Privy Loci") },
         actions = {
-            IconButton(onClick = onLocationIconClick) {
-                AdaptiveIcon(locationPermissionGranted = locationPermissionGranted)
+            if (locationPermissionGranted) {
+                IconButton(onClick = onLocationIconClick) {
+                    AdaptiveIcon(locationPermissionGranted = true)
+                }
+                Icon(Icons.Filled.Menu, contentDescription = "Menu")
+            } else {
+                IconButton(onClick = {/*TODO: Explainer dial that is dismissable*/ }) {
+                    AdaptiveIcon(locationPermissionGranted = false)
+                }
+                Icon(Icons.Filled.Menu, contentDescription = "Menu")
+
             }
-            Icon(Icons.Filled.Menu, contentDescription = "Menu")
+
         }
     )
 }

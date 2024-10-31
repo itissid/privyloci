@@ -28,12 +28,19 @@ fun MainScreenPreview() {
     }
 }
 
-@Preview(showBackground = true, widthDp = 320, heightDp = 640, uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Preview(showBackground = true, widthDp = 320, heightDp = 640)
+@Preview(
+    name = "Night mode",
+    showBackground = true,
+    widthDp = 320,
+    heightDp = 640,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Preview(name = "Day mode", showBackground = true, widthDp = 320, heightDp = 640)
 @Composable
 fun PlacesAndAssetScreenPreview() {
-    PrivyLociTheme {
+    PrivyLociTheme(dynamicColor = true) {
         val (placesList, assetsList) = DataProvider.getData()
-        PlacesAndAssetsScreen(placesList+assetsList)
+        PlacesAndAssetsScreen(placesList + assetsList)
     }
 }
+
