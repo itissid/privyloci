@@ -2,6 +2,7 @@ package me.itissid.privyloci
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -32,11 +33,13 @@ import androidx.navigation.compose.composable
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -54,6 +57,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
+import me.itissid.privyloci.service.PrivyForegroundService
 import me.itissid.privyloci.ui.AdaptiveIcon
 import me.itissid.privyloci.ui.LocationPermissionRationaleDialogue
 import me.itissid.privyloci.ui.PermissionDeniedScreen
@@ -107,11 +111,12 @@ fun MainScreenWrapper(
     val context = LocalContext.current as Activity
 
     var rationaleState by remember { mutableStateOf(false) }
-
+    // TODO: Encapsulate the permision code in its own class.
     val foregroundLocationPermissionState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.POST_NOTIFICATIONS // Add this permission
         )
     )
 
@@ -141,6 +146,7 @@ fun MainScreenWrapper(
             Log.w(TAG, "Launching multiple permission request")
             foregroundLocationPermissionState.launchMultiplePermissionRequest()
             // TODO: The system can choose to ignore this request. Raise a warning for the user.
+            // foregroundLocationPermissionState.shouldShowRationale == false, foregroundLocationPermissionState.isGranted == false,
         }
     }
 
@@ -157,7 +163,7 @@ fun MainScreenWrapper(
             }
         )
     }
-    // Now we want to
+    // TODO: Ask for background permissions if I don't take the foreground permissions route.
     MainScreen(
         appContainers,
         userSubscriptions,
@@ -165,8 +171,29 @@ fun MainScreenWrapper(
         foregroundLocationPermissionState.allPermissionsGranted,
         onLocationIconClick
     )
+    LaunchedEffect(foregroundLocationPermissionState.allPermissionsGranted) {
+        if (foregroundLocationPermissionState.allPermissionsGranted) {
+            startPrivyForegroundService(context)
+        } else {
+            stopPrivyForegroundService(context)
+        }
+    }
 }
 
+fun startPrivyForegroundService(context: Context) {
+    val serviceIntent = Intent(context, PrivyForegroundService::class.java)
+    ContextCompat.startForegroundService(context, serviceIntent)
+}
+
+fun stopPrivyForegroundService(context: Context) {
+    val serviceIntent = Intent(context, PrivyForegroundService::class.java)
+    context.stopService(serviceIntent)
+}
+
+
+data class RationaleState(
+    val isInitialized: Boolean
+)
 
 @Composable
 fun MainScreen(

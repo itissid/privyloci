@@ -1,6 +1,8 @@
 package me.itissid.privyloci.datamodels
 
 import android.os.Parcelable
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.google.gson.Gson
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -66,6 +68,49 @@ data class Subscription(
         }
     }
 }
+
+// SubscriptionEntity.kt
+@Entity(tableName = "subscriptions")
+data class SubscriptionEntity(
+    @PrimaryKey val subscriptionId: Int,
+    val type: SubscriptionType,
+    val placeTagId: Int,
+    val placeTagName: String,
+    val appInfo: String,
+    val createdAt: Long,
+    val isActive: Boolean,
+    val expirationDt: Long?,
+    val eventType: EventType
+)
+
+fun SubscriptionEntity.toSubscription(): Subscription {
+    return Subscription(
+        subscriptionId = this.subscriptionId,
+        type = this.type,
+        placeTagId = this.placeTagId,
+        placeTagName = this.placeTagName,
+        appInfo = this.appInfo,
+        createdAt = this.createdAt,
+        isActive = this.isActive,
+        expirationDt = this.expirationDt,
+        eventType = this.eventType
+    )
+}
+
+fun Subscription.toEntity(): SubscriptionEntity {
+    return SubscriptionEntity(
+        subscriptionId = this.subscriptionId,
+        type = this.type,
+        placeTagId = this.placeTagId,
+        placeTagName = this.placeTagName,
+        appInfo = this.appInfo,
+        createdAt = this.createdAt,
+        isActive = this.isActive,
+        expirationDt = this.expirationDt,
+        eventType = this.eventType
+    )
+}
+
 
 enum class SubscriptionType {
     APP, USER
@@ -136,6 +181,11 @@ enum class AssetTrackType {
 enum class AssetType {
     BLE, WIFI, IR
 }
+
+data class LatLng(
+    val latitude: Double,
+    val longitude: Double
+)
 
 /**
  * Intermediate Data classes for the views.
