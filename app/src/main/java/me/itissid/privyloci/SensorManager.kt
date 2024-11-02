@@ -8,11 +8,13 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import me.itissid.privyloci.datamodels.SensorType
 import me.itissid.privyloci.service.PrivyForegroundService
 
 object SensorManager {
     private val locationMutableFlow = MutableSharedFlow<Location>(replay = 1)
     val locationFlow: SharedFlow<Location> = locationMutableFlow.asSharedFlow()
+    private val activeSensors = mutableSetOf<SensorType>()
 
     private var isEmitting = false
 
@@ -52,5 +54,35 @@ object SensorManager {
     fun initialize(privyForegroundService: PrivyForegroundService) {
         //
         //TODO("Not yet implemented")
+    }
+
+
+    fun updateActiveSensors(requiredSensors: Set<SensorType>) {
+        val sensorsToStart = requiredSensors - activeSensors
+        val sensorsToStop = activeSensors - requiredSensors
+
+        sensorsToStart.forEach { startSensor(it) }
+        sensorsToStop.forEach { stopSensor(it) }
+
+        activeSensors.clear()
+        activeSensors.addAll(requiredSensors)
+    }
+
+    private fun startSensor(sensorType: SensorType) {
+        when (sensorType) {
+            SensorType.LOCATION -> startLocationUpdates()
+            // Start other sensors
+            SensorType.BLE -> TODO()
+            SensorType.WIFI -> TODO()
+        }
+    }
+
+    private fun stopSensor(sensorType: SensorType) {
+        when (sensorType) {
+            SensorType.LOCATION -> stopLocationUpdates()
+            // Stop other sensors
+            SensorType.BLE -> TODO()
+            SensorType.WIFI -> TODO()
+        }
     }
 }

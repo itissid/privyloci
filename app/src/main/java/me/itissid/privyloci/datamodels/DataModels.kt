@@ -1,5 +1,6 @@
 package me.itissid.privyloci.datamodels
 
+import android.media.metrics.Event
 import android.os.Parcelable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -29,8 +30,9 @@ enum class PlaceTagType {
 
 @Serializable
 @Parcelize
+@Entity(tableName = "subscriptions")
 data class Subscription(
-    val subscriptionId: Int,
+    @PrimaryKey val subscriptionId: Int,
     val type: SubscriptionType, // enum {APP, USER}
     val placeTagId: Int,
     var placeTagName: String,
@@ -69,48 +71,24 @@ data class Subscription(
     }
 }
 
-// SubscriptionEntity.kt
-@Entity(tableName = "subscriptions")
-data class SubscriptionEntity(
-    @PrimaryKey val subscriptionId: Int,
-    val type: SubscriptionType,
-    val placeTagId: Int,
-    val placeTagName: String,
-    val appInfo: String,
-    val createdAt: Long,
-    val isActive: Boolean,
-    val expirationDt: Long?,
-    val eventType: EventType
-)
-
-fun SubscriptionEntity.toSubscription(): Subscription {
-    return Subscription(
-        subscriptionId = this.subscriptionId,
-        type = this.type,
-        placeTagId = this.placeTagId,
-        placeTagName = this.placeTagName,
-        appInfo = this.appInfo,
-        createdAt = this.createdAt,
-        isActive = this.isActive,
-        expirationDt = this.expirationDt,
-        eventType = this.eventType
-    )
+enum class SensorType {
+    LOCATION,
+    BLE,
+    WIFI
+    // Add other sensor types
 }
 
-fun Subscription.toEntity(): SubscriptionEntity {
-    return SubscriptionEntity(
-        subscriptionId = this.subscriptionId,
-        type = this.type,
-        placeTagId = this.placeTagId,
-        placeTagName = this.placeTagName,
-        appInfo = this.appInfo,
-        createdAt = this.createdAt,
-        isActive = this.isActive,
-        expirationDt = this.expirationDt,
-        eventType = this.eventType
-    )
-}
+fun Subscription.requiredSensors(): List<SensorType> {
+    return when (eventType) {
+        EventType.GEOFENCE_ENTRY,
+        EventType.GEOFENCE_EXIT -> listOf(SensorType.LOCATION)
 
+        EventType.TRACK_BLE_ASSET_NEARBY -> listOf(SensorType.BLE, SensorType.LOCATION)
+        EventType.QIBLA_DIRECTION_PRAYER_TIME -> listOf(SensorType.LOCATION)
+        // Define required sensors for other event types
+        else -> emptyList()
+    }
+}
 
 enum class SubscriptionType {
     APP, USER

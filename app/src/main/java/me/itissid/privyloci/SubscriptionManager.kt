@@ -5,13 +5,12 @@ import androidx.room.Room
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import me.itissid.privyloci.SensorManager.updateActiveSensors
 import me.itissid.privyloci.datamodels.EventType
 import me.itissid.privyloci.datamodels.Subscription
-import me.itissid.privyloci.datamodels.SubscriptionEntity
 import me.itissid.privyloci.datamodels.SubscriptionDao
 import me.itissid.privyloci.datamodels.SubscriptionType
-import me.itissid.privyloci.datamodels.toEntity
-import me.itissid.privyloci.datamodels.toSubscription
+import me.itissid.privyloci.datamodels.requiredSensors
 import me.itissid.privyloci.db.AppDatabase
 import me.itissid.privyloci.eventprocessors.EventProcessor
 import me.itissid.privyloci.eventprocessors.GeofenceEventProcessor
@@ -47,11 +46,11 @@ object SubscriptionManager {
                 )
             )
             subscriptions.forEach {
-                subscriptionDao.insertSubscription(it.toEntity() /*it*/)
+                subscriptionDao.insertSubscription(it)
             }
             // Create subscriptions and start the processing.
             subscriptions.forEach {
-                addSubscription(it /*.toSubscription()*/, context)
+                addSubscription(it, context)
             }
         }
     }
@@ -62,14 +61,22 @@ object SubscriptionManager {
         eventProcessors[subscription.subscriptionId] = processor
         processor.startProcessing()
 
-        // Start the SensorManager if not already started
-        SensorManager.startLocationUpdates()
+        manageSensors()
     }
 
+    private fun createEventProcessor(subscription: Subscription, context: Context): EventProcessor {
+        return when (subscription.eventType) {
+            EventType.GEOFENCE_ENTRY,
+            EventType.GEOFENCE_EXIT -> GeofenceEventProcessor(subscription, context)
+            // Add other event types as needed
+            else -> throw IllegalArgumentException("Unsupported event type")
+        }
+    }
 
-//    suspend fun initialize(context: Context) {
-//        addSubscription(testSubscription, context)
-//    }
+    private fun manageSensors() {
+        val requiredSensors = activeSubscriptions.flatMap { it.requiredSensors() }.toSet()
+        updateActiveSensors(requiredSensors)
+    }
 
     suspend fun removeSubscription(subscriptionId: Int) {
         activeSubscriptions.removeAll { it.subscriptionId == subscriptionId }
@@ -84,6 +91,7 @@ object SubscriptionManager {
         if (subscriptionEntity != null) {
             subscriptionDao.deleteSubscription(subscriptionEntity)
         }
+        manageSensors()
     }
 
     fun shutdown() {
