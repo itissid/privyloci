@@ -4,6 +4,7 @@ import me.itissid.privyloci.datamodels.SensorType
 import me.itissid.privyloci.sensors.GoogleFusedLocationSensor
 import me.itissid.privyloci.sensors.ISensor
 import me.itissid.privyloci.service.PrivyForegroundService
+import me.itissid.privyloci.util.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -56,6 +57,12 @@ class SensorManager @Inject constructor(
     }
 
     fun updateActiveSensors(requiredSensors: Set<SensorType>) {
+        this::class.qualifiedName?.let {
+            Logger.d(
+                it,
+                "Updating active sensors to: $requiredSensors"
+            )
+        }
         val sensorsToStart = requiredSensors - activeSensors
         val sensorsToStop = activeSensors - requiredSensors
 
@@ -67,10 +74,12 @@ class SensorManager @Inject constructor(
     }
 
     private fun startSensors(sensorType: SensorType) {
+        this::class.qualifiedName?.let { Logger.d(it, "Starting sensor: $sensorType") }
         sensorFor(sensorType).start()
     }
 
     private fun stopSensors(sensorType: SensorType) {
+        this::class.qualifiedName?.let { Logger.d(it, "Stopping sensor: $sensorType") }
         sensorFor(sensorType).stop()
     }
 

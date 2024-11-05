@@ -3,6 +3,7 @@ package me.itissid.privyloci.eventprocessors
 import android.app.NotificationManager
 import android.content.Context
 import android.location.Location
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +17,11 @@ import me.itissid.privyloci.datamodels.LatLng
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.requiredSensors
 import me.itissid.privyloci.sensors.GoogleFusedLocationSensor
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 
 class GeofenceEventProcessor(
     private val subscription: Subscription,
@@ -37,6 +42,10 @@ class GeofenceEventProcessor(
     private var lastStateChangeTime = System.currentTimeMillis()
 
     override fun startProcessing() {
+        Log.d(
+            "GeofenceEventProcessor",
+            "Starting geofence event processor for Subscription ID: ${subscription.subscriptionId}"
+        )
         assert(
             subscription.requiredSensors().size == 1
         ) { "Geofence event processor requires exactly one sensor" }
@@ -51,10 +60,23 @@ class GeofenceEventProcessor(
     }
 
     override fun stopProcessing() {
+        Log.d(
+            "GeofenceEventProcessor",
+            "Stopping geofence event processor for Subscription ID: ${subscription.subscriptionId}"
+        )
         job?.cancel()
     }
 
-    private suspend fun processLocation(location: Location) {
+    private fun processLocation(location: Location) {
+        Log.d(
+            "GeofenceEventProcessor",
+            "Processing location ${
+                LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(location.time),
+                    ZoneId.of("UTC")
+                )
+            }"
+        )
         val distance = FloatArray(1)
         Location.distanceBetween(
             location.latitude, location.longitude,

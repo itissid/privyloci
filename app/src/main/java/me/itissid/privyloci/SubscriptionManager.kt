@@ -38,15 +38,27 @@ class SubscriptionManager @Inject constructor(
 
                 // Start processors for new subscriptions
                 activeSubscriptions.addAll(subscriptions)
+                this::class.simpleName?.let {
+                    Logger.d(
+                        it,
+                        "Active subscriptions processed by SubscriptionManager: ${activeSubscriptions.size}"
+                    )
+                }
                 subscriptions.forEach { subscription ->
                     val processor = createEventProcessor(subscription, context)
                     processor.startProcessing()
                     eventProcessors[subscription.subscriptionId] = processor
                 }
+                this::class.simpleName?.let {
+                    Logger.d(
+                        it,
+                        "calling manageSensors for ${activeSubscriptions.size} subscriptions"
+                    )
+                }
+                manageSensors()
             }
         }
         // N2S: Leaving the sensor manager start code here for now. Not sure if this is the right place for it.
-        manageSensors()
     }
 
     private fun createEventProcessor(subscription: Subscription, context: Context): EventProcessor {
