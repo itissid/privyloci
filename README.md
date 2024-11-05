@@ -1,4 +1,4 @@
-Privy Loci: A Privacy First Location Inference API (Demo: October'24)
+Privy Loci: A Privacy First Location Inference API
 ===================================================
 
 Privy Loci is an proposal for:
