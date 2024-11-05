@@ -6,3 +6,13 @@ interface EventProcessor {
     fun startProcessing()
     fun stopProcessing()
 }
+
+class NoopEventProcessor : EventProcessor {
+    override fun startProcessing() {
+        // No-op
+    }
+
+    override fun stopProcessing() {
+        // No-op
+    }
+}

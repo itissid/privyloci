@@ -1,88 +1,85 @@
 package me.itissid.privyloci
 
-import android.location.Location
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 import me.itissid.privyloci.datamodels.SensorType
+import me.itissid.privyloci.sensors.GoogleFusedLocationSensor
+import me.itissid.privyloci.sensors.ISensor
 import me.itissid.privyloci.service.PrivyForegroundService
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object SensorManager {
-    private val locationMutableFlow = MutableSharedFlow<Location>(replay = 1)
-    val locationFlow: SharedFlow<Location> = locationMutableFlow.asSharedFlow()
+@Singleton
+class SensorManager @Inject constructor(
+    private val googleLocationSensor: GoogleFusedLocationSensor
+    // Other sensors
+) {
+    //    private val locationMutableFlow = MutableSharedFlow<Location>(replay = 20)
+//    val locationFlow: SharedFlow<Location> = locationMutableFlow.asSharedFlow()
     private val activeSensors = mutableSetOf<SensorType>()
 
-    private var isEmitting = false
+//    private var isEmitting = false
 
-    fun startLocationUpdates() {
-        if (isEmitting) return
-        isEmitting = true
-        CoroutineScope(Dispatchers.Default).launch {
-            // TODO: Replace by a location provider.
-            val mockLocations = listOf(
-                createLocation(12.9715, 77.5945), // Outside geofence
-                createLocation(12.9716, 77.5946), // At geofence boundary
-                createLocation(12.9717, 77.5947)  // Inside geofence
-            )
-            for (location in mockLocations) {
-                locationMutableFlow.emit(location)
-                delay(5000) // Wait 5 seconds before next update
-            }
-        }
-    }
+//    fun startLocationUpdates() {
+//        if (isEmitting) return
+//        isEmitting = true
+//        CoroutineScope(Dispatchers.Default).launch {
+//            // TODO: Replace by a location provider.
+////            val mockLocations = listOf(
+////                createLocation(12.9715, 77.5945), // Outside geofence
+////                createLocation(12.9716, 77.5946), // At geofence boundary
+////                createLocation(12.9717, 77.5947)  // Inside geofence
+////            )
+////            for (location in mockLocations) {
+////                locationMutableFlow.emit(location)
+////                delay(5000) // Wait 5 seconds before next update
+////            }
+//        }
+//    }
 
-    fun stopLocationUpdates() {
-        isEmitting = false
-    }
+//    fun stopLocationUpdates() {
+//        isEmitting = false
+//    }
 
-    private fun createLocation(lat: Double, lon: Double): Location {
-        return Location("mock").apply {
-            latitude = lat
-            longitude = lon
-            time = System.currentTimeMillis()
-        }
-    }
+//    private fun createLocation(lat: Double, lon: Double): Location {
+//        return Location("mock").apply {
+//            latitude = lat
+//            longitude = lon
+//            time = System.currentTimeMillis()
+//        }
+//    }
 
     fun shutdown() {
-        // TODO("Not yet implemented")
+        updateActiveSensors(emptySet())
     }
 
     fun initialize(privyForegroundService: PrivyForegroundService) {
-        //
         //TODO("Not yet implemented")
     }
-
 
     fun updateActiveSensors(requiredSensors: Set<SensorType>) {
         val sensorsToStart = requiredSensors - activeSensors
         val sensorsToStop = activeSensors - requiredSensors
 
-        sensorsToStart.forEach { startSensor(it) }
-        sensorsToStop.forEach { stopSensor(it) }
+        sensorsToStart.forEach { startSensors(it) }
+        sensorsToStop.forEach { stopSensors(it) }
 
         activeSensors.clear()
         activeSensors.addAll(requiredSensors)
     }
 
-    private fun startSensor(sensorType: SensorType) {
-        when (sensorType) {
-            SensorType.LOCATION -> startLocationUpdates()
-            // Start other sensors
-            SensorType.BLE -> TODO()
-            SensorType.WIFI -> TODO()
-        }
+    private fun startSensors(sensorType: SensorType) {
+        sensorFor(sensorType).start()
     }
 
-    private fun stopSensor(sensorType: SensorType) {
-        when (sensorType) {
-            SensorType.LOCATION -> stopLocationUpdates()
-            // Stop other sensors
+    private fun stopSensors(sensorType: SensorType) {
+        sensorFor(sensorType).stop()
+    }
+
+    fun sensorFor(sensor: SensorType): ISensor {
+        return when (sensor) {
+            SensorType.LOCATION -> googleLocationSensor
             SensorType.BLE -> TODO()
             SensorType.WIFI -> TODO()
         }
     }
 }
+

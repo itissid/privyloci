@@ -15,8 +15,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @Parcelize
+@Entity(tableName = "place_tags")
 data class PlaceTag(
-    val id: Int,
+    @PrimaryKey val id: Int,
     val name: String,
     val type: PlaceTagType, // enum {PLACE, ASSET}
     val metadata: String, // Encrypted JSON string

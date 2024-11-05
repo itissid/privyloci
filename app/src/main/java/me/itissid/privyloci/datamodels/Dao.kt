@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface SubscriptionDao {
     @Query("SELECT * FROM subscriptions" /* TODO: Get active and unexpired subscriptions*/)
-    suspend fun getAllSubscriptions(): Flow<List<Subscription>>
+    fun getAllSubscriptions(): Flow<List<Subscription>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSubscription(subscription: Subscription)
@@ -21,6 +21,10 @@ interface SubscriptionDao {
 
     @Query("SELECT * FROM subscriptions WHERE subscriptionId = :id")
     suspend fun getSubscriptionById(id: Int): Subscription?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSubscriptions(subscriptions: List<Subscription>)
+
 }
 
 
@@ -31,4 +35,6 @@ interface PlaceTagDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaceTags(placeTags: List<PlaceTag>)
+
+
 }

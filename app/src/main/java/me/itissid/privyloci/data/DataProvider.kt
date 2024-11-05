@@ -90,16 +90,6 @@ object DataProvider {
                     "isActive": true,
                     "expirationDt": null,
                     "eventType": "TRACK_BLE_ASSET_DISCONNECTED"
-                },
-                {
-                    "subscriptionId": 5,
-                    "type": "APP",
-                    "placeTagId": 4,
-                    "appInfo": "{ \"app_name\": \"Car Tracking App\", \"app_id\": \"com.example.dummycarapp\" }",
-                    "createdAt": 1693048323,
-                    "isActive": true,
-                    "expirationDt": null,
-                    "eventType": "TRACK_BLE_ASSET_DISCONNECTED"
                 }
             ],
             "eventStates": [

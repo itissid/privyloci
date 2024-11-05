@@ -1,83 +1,89 @@
 package me.itissid.privyloci
 
 import android.content.Context
-import androidx.room.Room
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import me.itissid.privyloci.SensorManager.updateActiveSensors
 import me.itissid.privyloci.datamodels.EventType
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.SubscriptionDao
-import me.itissid.privyloci.datamodels.SubscriptionType
 import me.itissid.privyloci.datamodels.requiredSensors
-import me.itissid.privyloci.db.AppDatabase
 import me.itissid.privyloci.eventprocessors.EventProcessor
 import me.itissid.privyloci.eventprocessors.GeofenceEventProcessor
+import me.itissid.privyloci.eventprocessors.NoopEventProcessor
+import me.itissid.privyloci.util.Logger
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object SubscriptionManager {
+@Singleton
+class SubscriptionManager @Inject constructor(
+    private val sensorManager: SensorManager,
+    private val subscriptionDao: SubscriptionDao
+) {
     private val activeSubscriptions = mutableListOf<Subscription>()
     private val eventProcessors = mutableMapOf<Int, EventProcessor>()
-    private lateinit var db: AppDatabase
-    private lateinit var subscriptionDao: SubscriptionDao
 
     suspend fun initialize(context: Context) {
-        db = Room.databaseBuilder(
-            context.applicationContext,
-            AppDatabase::class.java, "privy-loci-database"
-        ).build()
-        subscriptionDao = db.subscriptionDao()
 
         // Load subscriptions from database
         CoroutineScope(Dispatchers.IO).launch {
             //  val subscriptions = subscriptionDao.getAllSubscriptions()
             // For testing, add a mock subscription
-            val subscriptions = listOf(
-                Subscription(
-                    subscriptionId = 1,
-                    type = SubscriptionType.USER,
-                    placeTagId = 1,
-                    placeTagName = "Test Place",
-                    appInfo = "",
-                    createdAt = System.currentTimeMillis(),
-                    isActive = true,
-                    expirationDt = null,
-                    eventType = EventType.GEOFENCE_ENTRY
-                )
-            )
-            subscriptions.forEach {
-                subscriptionDao.insertSubscription(it)
-            }
-            // Create subscriptions and start the processing.
-            subscriptions.forEach {
-                addSubscription(it, context)
+            subscriptionDao.getAllSubscriptions().collect { subscriptions ->
+                activeSubscriptions.forEach { subscription ->
+                    eventProcessors[subscription.subscriptionId]?.stopProcessing()
+                }
+                activeSubscriptions.clear()
+                eventProcessors.clear()
+
+                // Start processors for new subscriptions
+                activeSubscriptions.addAll(subscriptions)
+                subscriptions.forEach { subscription ->
+                    val processor = createEventProcessor(subscription, context)
+                    processor.startProcessing()
+                    eventProcessors[subscription.subscriptionId] = processor
+                }
             }
         }
-    }
-
-    private fun addSubscription(subscription: Subscription, context: Context) {
-        activeSubscriptions.add(subscription)
-        val processor = GeofenceEventProcessor(subscription, context)
-        eventProcessors[subscription.subscriptionId] = processor
-        processor.startProcessing()
-
+        // N2S: Leaving the sensor manager start code here for now. Not sure if this is the right place for it.
         manageSensors()
     }
 
     private fun createEventProcessor(subscription: Subscription, context: Context): EventProcessor {
+        Logger.d("SubscriptionManager", "Creating event processor for subscription: $subscription")
         return when (subscription.eventType) {
             EventType.GEOFENCE_ENTRY,
-            EventType.GEOFENCE_EXIT -> GeofenceEventProcessor(subscription, context)
+            EventType.GEOFENCE_EXIT -> GeofenceEventProcessor(subscription, context, sensorManager)
+
             // Add other event types as needed
-            else -> throw IllegalArgumentException("Unsupported event type")
+            EventType.TRACK_BLE_ASSET_DISCONNECTED -> {
+                //TODO: implement me
+                NoopEventProcessor()
+            }
+
+            EventType.TRACK_BLE_ASSET_NEARBY -> {
+                //TODO: implement me
+                NoopEventProcessor()
+            }
+
+            EventType.QIBLA_DIRECTION_PRAYER_TIME -> {
+                //TODO: implement me
+                NoopEventProcessor()
+            }
+
+            EventType.DISPLAY_PINS_MAP_TILE -> {
+                //TODO: implement me
+                NoopEventProcessor()
+            }
         }
     }
 
     private fun manageSensors() {
         val requiredSensors = activeSubscriptions.flatMap { it.requiredSensors() }.toSet()
-        updateActiveSensors(requiredSensors)
+        sensorManager.updateActiveSensors(requiredSensors)
     }
 
+    // TODO: Used by the UI to remove a subscription.
     suspend fun removeSubscription(subscriptionId: Int) {
         activeSubscriptions.removeAll { it.subscriptionId == subscriptionId }
         eventProcessors[subscriptionId]?.stopProcessing()
@@ -85,8 +91,10 @@ object SubscriptionManager {
 
         // Stop SensorManager if no subscriptions remain
         if (activeSubscriptions.isEmpty()) {
-            SensorManager.stopLocationUpdates()
+            Logger.d("SubscriptionManager", "No active subscriptions. Stopping SensorManager")
+            sensorManager.updateActiveSensors(emptySet())
         }
+
         val subscriptionEntity = subscriptionDao.getSubscriptionById(subscriptionId)
         if (subscriptionEntity != null) {
             subscriptionDao.deleteSubscription(subscriptionEntity)
@@ -95,7 +103,13 @@ object SubscriptionManager {
     }
 
     fun shutdown() {
-        TODO("Not yet implemented")
+        Logger.d("SubscriptionManager", "Shutting down SubscriptionManager")
+        activeSubscriptions.forEach { subscription ->
+            eventProcessors[subscription.subscriptionId]?.stopProcessing()
+        }
+        activeSubscriptions.clear()
+        eventProcessors.clear()
+        sensorManager.shutdown()
     }
 }
 

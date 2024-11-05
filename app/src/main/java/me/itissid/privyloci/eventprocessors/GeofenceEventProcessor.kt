@@ -3,7 +3,6 @@ package me.itissid.privyloci.eventprocessors
 import android.app.NotificationManager
 import android.content.Context
 import android.location.Location
-import android.media.metrics.Event
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,11 +14,14 @@ import me.itissid.privyloci.SensorManager
 import me.itissid.privyloci.datamodels.GeofenceStateType
 import me.itissid.privyloci.datamodels.LatLng
 import me.itissid.privyloci.datamodels.Subscription
+import me.itissid.privyloci.datamodels.requiredSensors
+import me.itissid.privyloci.sensors.GoogleFusedLocationSensor
 import kotlin.random.Random
 
 class GeofenceEventProcessor(
     private val subscription: Subscription,
-    private val context: Context
+    private val context: Context,
+    private val sensorManager: SensorManager
 ) : EventProcessor {
     companion object {
         const val CHANNEL_ID = "PrivyLogiGeoChannelNofitication"
@@ -35,8 +37,14 @@ class GeofenceEventProcessor(
     private var lastStateChangeTime = System.currentTimeMillis()
 
     override fun startProcessing() {
-        job = SensorManager.locationFlow
-            .onEach { location ->
+        assert(
+            subscription.requiredSensors().size == 1
+        ) { "Geofence event processor requires exactly one sensor" }
+
+        val sensor = sensorManager.sensorFor(
+            subscription.requiredSensors().first()
+        ) as GoogleFusedLocationSensor
+        job = sensor.locationFlow.onEach { location ->
                 processLocation(location)
             }
             .launchIn(CoroutineScope(Dispatchers.Default))

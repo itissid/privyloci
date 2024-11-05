@@ -17,6 +17,7 @@ import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitAll
@@ -29,8 +30,13 @@ import me.itissid.privyloci.util.Logger
 import javax.inject.Inject
 
 // TODO: Add methods to add/remove subscription to pass to the SubscriptionManager.
-//
+@AndroidEntryPoint
 class PrivyForegroundService : Service() {
+    @Inject
+    lateinit var sensorManager: SensorManager
+
+    @Inject
+    lateinit var subscriptionManager: SubscriptionManager
 
     companion object {
         const val CHANNEL_ID = "PrivyLociForegroundServiceChannel"
@@ -41,11 +47,10 @@ class PrivyForegroundService : Service() {
         Logger.d(this::class.java.simpleName, "Privy Loci Foreground Service created")
 
         // Initialize SensorManager
-        SensorManager.initialize(this)
-
+        sensorManager.initialize(this)
         // Initialize SubscriptionManager lazily
         CoroutineScope(Dispatchers.IO).launch {
-            SubscriptionManager.initialize(this@PrivyForegroundService)
+            subscriptionManager.initialize(this@PrivyForegroundService)
         }
 
         // Start the foreground service with notification
@@ -65,8 +70,8 @@ class PrivyForegroundService : Service() {
         Logger.d(this::class.java.simpleName, "Privy Loci Foreground Service destroyed")
 
         // Clean up resources
-        SensorManager.shutdown()
-        SubscriptionManager.shutdown()
+        sensorManager.shutdown()
+        subscriptionManager.shutdown()
     }
 
     override fun onBind(intent: Intent?): IBinder? {

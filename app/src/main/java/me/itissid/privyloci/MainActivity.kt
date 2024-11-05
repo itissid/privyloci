@@ -57,6 +57,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
+import me.itissid.privyloci.data.DataProvider.processAppContainers
 import me.itissid.privyloci.service.PrivyForegroundService
 import me.itissid.privyloci.ui.AdaptiveIcon
 import me.itissid.privyloci.ui.LocationPermissionRationaleDialogue
@@ -84,17 +85,13 @@ class MainActivity : ComponentActivity() {
 //                Logger.w("MainActivity", "Location permission denied")
 //            }
 //        }
-        val (placesList, assetsList, subscriptionsList) = DataProvider.getData()
-        val places = placesList + assetsList
-        val userSubscriptions = subscriptionsList.filter { it.type == SubscriptionType.USER }
-        val appContainers = DataProvider.processAppContainers(subscriptionsList)
+//        val (placesList, assetsList, subscriptionsList) = DataProvider.getData()
+//        val places = placesList + assetsList
+//        val userSubscriptions = subscriptionsList.filter { it.type == SubscriptionType.USER }
+//        val appContainers = DataProvider.processAppContainers(subscriptionsList)
         setContent {
             PrivyLociTheme {
-                MainScreenWrapper(
-                    appContainers = appContainers,
-                    userSubscriptions = userSubscriptions,
-                    places = places,
-                )
+                MainScreenWrapper()
             }
         }
     }
@@ -103,11 +100,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MainScreenWrapper(
-    appContainers: List<AppContainer>,
-    userSubscriptions: List<Subscription>,
-    places: List<PlaceTag>,
-) {
+fun MainScreenWrapper() {
     val context = LocalContext.current as Activity
 
     var rationaleState by remember { mutableStateOf(false) }
@@ -164,6 +157,17 @@ fun MainScreenWrapper(
         )
     }
     // TODO: Ask for background permissions if I don't take the foreground permissions route.
+    val database = MainApplication.database
+
+    val subscriptionDao = database.subscriptionDao()
+    val placeTagDao = database.placeTagDao()
+    val places by placeTagDao.getAllPlaceTags().collectAsState(initial = emptyList())
+    val subscriptions by subscriptionDao.getAllSubscriptions().collectAsState(initial = emptyList())
+    Log.d(TAG, "Places: ${places.size}")
+    Log.d(TAG, "Subscriptions: ${subscriptions.size}")
+    val userSubscriptions = subscriptions.filter { it.type == SubscriptionType.USER }
+    val appContainers = processAppContainers(subscriptions)
+
     MainScreen(
         appContainers,
         userSubscriptions,
