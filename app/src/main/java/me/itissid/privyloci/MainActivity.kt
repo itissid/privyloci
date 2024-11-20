@@ -2,17 +2,18 @@ package me.itissid.privyloci
 
 import android.Manifest
 import android.app.Activity
+import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
+import android.telephony.ServiceState
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,19 +33,14 @@ import androidx.navigation.compose.composable
 
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-
-import me.itissid.privyloci.data.DataProvider
 
 import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.PlaceTag
@@ -52,16 +48,18 @@ import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.SubscriptionType
 import me.itissid.privyloci.ui.HomeScreen
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.accompanist.permissions.rememberPermissionState
 
 import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
 import me.itissid.privyloci.data.DataProvider.processAppContainers
 import me.itissid.privyloci.service.PrivyForegroundService
+import me.itissid.privyloci.service.ServiceStateHolder
+import me.itissid.privyloci.service.startPrivyForegroundService
+import me.itissid.privyloci.service.stopPrivyForegroundService
 import me.itissid.privyloci.ui.AdaptiveIcon
 import me.itissid.privyloci.ui.LocationPermissionRationaleDialogue
-import me.itissid.privyloci.ui.PermissionDeniedScreen
+import me.itissid.privyloci.util.Logger
 
 // TODO(Sid): Replace with real data after demo.
 data class MockData(
@@ -104,7 +102,10 @@ fun MainScreenWrapper() {
     val context = LocalContext.current as Activity
 
     var rationaleState by remember { mutableStateOf(false) }
+
+
     // TODO: Encapsulate the permision code in its own class.
+    // TODO: Ask for background permissions if I don't take the foreground permissions route.
     val foregroundLocationPermissionState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -156,11 +157,12 @@ fun MainScreenWrapper() {
             }
         )
     }
-    // TODO: Ask for background permissions if I don't take the foreground permissions route.
+    // TODO: Consider using a viewmodel to get the data from the daos.
     val database = MainApplication.database
 
     val subscriptionDao = database.subscriptionDao()
     val placeTagDao = database.placeTagDao()
+    // Coro for the win!
     val places by placeTagDao.getAllPlaceTags().collectAsState(initial = emptyList())
     val subscriptions by subscriptionDao.getAllSubscriptions().collectAsState(initial = emptyList())
     Log.d(TAG, "Places: ${places.size}")
@@ -175,23 +177,16 @@ fun MainScreenWrapper() {
         foregroundLocationPermissionState.allPermissionsGranted,
         onLocationIconClick
     )
-    LaunchedEffect(foregroundLocationPermissionState.allPermissionsGranted) {
-        if (foregroundLocationPermissionState.allPermissionsGranted) {
-            startPrivyForegroundService(context)
-        } else {
-            stopPrivyForegroundService(context)
-        }
+
+    if (foregroundLocationPermissionState.allPermissionsGranted && !ServiceStateHolder.isServiceRunning) {
+        // TODO: On starting the service I want to show some of the data about how many subscriptions are active
+        // and being tracked.
+        startPrivyForegroundService(context)
+    } else if (!foregroundLocationPermissionState.allPermissionsGranted) {
+        // TODO: Warn the user after some time(probably like in a timer) that the service is not running
+        // because the permission is not granted.
+        stopPrivyForegroundService(context)
     }
-}
-
-fun startPrivyForegroundService(context: Context) {
-    val serviceIntent = Intent(context, PrivyForegroundService::class.java)
-    ContextCompat.startForegroundService(context, serviceIntent)
-}
-
-fun stopPrivyForegroundService(context: Context) {
-    val serviceIntent = Intent(context, PrivyForegroundService::class.java)
-    context.stopService(serviceIntent)
 }
 
 
@@ -214,6 +209,11 @@ fun MainScreen(
                 locationPermissionGranted = locationPermissionGranted,
                 onLocationIconClick = onLocationIconClick
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { navController.navigate("createEvent") }) {
+                Icon(Icons.Filled.Add, contentDescription = "Add Event")
+            }
         },
         bottomBar = { BottomNavBar(navController) }
     ) { innerPadding ->

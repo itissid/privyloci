@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import me.itissid.privyloci.datamodels.AppContainer
-import me.itissid.privyloci.datamodels.EventType
 import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.displayName

@@ -16,9 +16,13 @@
         <!-- Declare the Foreground Service -->
         <service
             android:name=".service.PrivyForegroundService"
-            android:exported="false"
-            android:foregroundServiceType="location"
-            />
+            android:exported="true"
+            android:foregroundServiceType="location">
+            <intent-filter>
+                <action android:name="me.itissid.privyloci.service.PrivyForegroundService" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name="me.itissid.privyloci.MainActivity"
             android:exported="true"
@@ -33,7 +37,9 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+        <receiver android:name=".service.NotificationDismissedReceiver" />
     </application>
+
     <!-- Add Permissions -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
@@ -42,4 +48,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="me.itissid.privyloci.service.PrivyForegroundService" />
+
+
 </manifest>

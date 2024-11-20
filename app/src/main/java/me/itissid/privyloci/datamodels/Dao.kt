@@ -35,6 +35,4 @@ interface PlaceTagDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaceTags(placeTags: List<PlaceTag>)
-
-
 }

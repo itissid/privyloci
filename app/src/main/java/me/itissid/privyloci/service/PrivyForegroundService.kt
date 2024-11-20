@@ -4,23 +4,17 @@ import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
-import android.content.ComponentName
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
-import android.content.pm.PackageManager
-import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import android.util.TypedValue
-import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.MainActivity
 import me.itissid.privyloci.R
@@ -28,8 +22,14 @@ import me.itissid.privyloci.SensorManager
 import me.itissid.privyloci.SubscriptionManager
 import me.itissid.privyloci.util.Logger
 import javax.inject.Inject
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.OutOfQuotaPolicy
 
-// TODO: Add methods to add/remove subscription to pass to the SubscriptionManager.
+object ServiceStateHolder {
+    var isServiceRunning = false
+}
+
 @AndroidEntryPoint
 class PrivyForegroundService : Service() {
     @Inject
@@ -55,6 +55,7 @@ class PrivyForegroundService : Service() {
 
         // Start the foreground service with notification
         startForegroundServiceWithNotification()
+        ServiceStateHolder.isServiceRunning = true
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -70,8 +71,25 @@ class PrivyForegroundService : Service() {
         Logger.d(this::class.java.simpleName, "Privy Loci Foreground Service destroyed")
 
         // Clean up resources
-        sensorManager.shutdown()
-        subscriptionManager.shutdown()
+        try {
+            sensorManager.shutdown()
+            subscriptionManager.shutdown()
+        } catch (e: Exception) {
+            Logger.e(
+                this::class.java.simpleName,
+                "Error shutting down subscription or sensor manager",
+                e
+            )
+        } finally {
+            ServiceStateHolder.isServiceRunning = false
+        }
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        // When user removes a task from the preview
+        Logger.d(this::class.java.simpleName, "FG Task removed")
+
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -89,9 +107,18 @@ class PrivyForegroundService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
                 && e is ForegroundServiceStartNotAllowedException
             ) {
+                // TODO: How does one set up instrumentation for tracking these errors in production?
+                // N2S: This happens typically due to lack of permissions but also due to a bug in the app where we try start a FG service from background. e.g. using LaunchedEffects etc.
+
                 Log.e(
                     "PrivyForegroundService",
-                    "Foreground service start not allowed for ${Build.VERSION.SDK_INT} >= ${Build.VERSION_CODES.S}"
+                    "Foreground service start not allowed for Android SDK version `${Build.VERSION.SDK_INT}` >= ${Build.VERSION_CODES.S}"
+                )
+            } else {
+                Log.e(
+                    "PrivyForegroundService",
+                    "Error starting foreground service",
+                    e
                 )
             }
         }
@@ -99,6 +126,9 @@ class PrivyForegroundService : Service() {
 
     private fun createNotification(): Notification {
         // Create an intent that will open the MainActivity when the notification is tapped
+        val deleteIntent = Intent(this, NotificationDismissedReceiver::class.java)
+        val pendingDeleteIntent =
+            PendingIntent.getBroadcast(this, 0, deleteIntent, PendingIntent.FLAG_IMMUTABLE)
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE
@@ -108,10 +138,35 @@ class PrivyForegroundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher_round) // small icon for the notification
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-            .setPriority(NotificationCompat.PRIORITY_LOW) // Set priority
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentTitle("Privy Loci is running")
             .setContentText("Monitoring your subscriptions")
             .setContentIntent(pendingIntent)
+            .setDeleteIntent(pendingDeleteIntent)
+            .setOngoing(true)
             .build()
     }
 }
+
+class NotificationDismissedReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        // Have a viewmodel here set so that
+        Logger.d(
+            "NotificationDismissedReciever",
+            "Peristent Notification dismissed, stopping FG Service"
+        )
+        context?.let {
+            // TODO: I decided to stop the foreground services en-masse but we could be more sparing.
+            // We can send an intent to stop services that have private data only and let others run.
+            stopPrivyForegroundService(it)
+        }
+
+        if (context != null) {
+            val workRequest = OneTimeWorkRequestBuilder<ServiceStoppedWorker>()
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                .build()
+            WorkManager.getInstance(context).enqueue(workRequest)
+        }
+    }
+}
+

@@ -55,8 +55,6 @@ class MainApplication : Application() {
                     Logger.e(this::class.toString(), "Error populating database", e)
                 }
             }
-
-
         }
 
         override fun onOpen(db: SupportSQLiteDatabase) {

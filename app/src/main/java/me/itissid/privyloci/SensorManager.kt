@@ -11,7 +11,7 @@ import javax.inject.Singleton
 @Singleton
 class SensorManager @Inject constructor(
     private val googleLocationSensor: GoogleFusedLocationSensor
-    // Other sensors
+    // Add Other sensors as we implement them
 ) {
     //    private val locationMutableFlow = MutableSharedFlow<Location>(replay = 20)
 //    val locationFlow: SharedFlow<Location> = locationMutableFlow.asSharedFlow()

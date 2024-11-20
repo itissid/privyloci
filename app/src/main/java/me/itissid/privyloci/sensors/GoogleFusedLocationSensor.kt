@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import me.itissid.privyloci.util.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,6 +31,7 @@ class GoogleFusedLocationSensor @Inject constructor(
 
     @SuppressLint("MissingPermission")
     override fun start() {
+        Logger.d(this::class.java.simpleName, "Is emitting: $isEmitting")
         if (isEmitting) return
         isEmitting = true
         CoroutineScope(Dispatchers.Default).launch {
@@ -42,7 +44,11 @@ class GoogleFusedLocationSensor @Inject constructor(
     }
 
     override fun stop() {
-        fusionLocationProviderClient.removeLocationUpdates(locationCallback)
+        try {
+            fusionLocationProviderClient.removeLocationUpdates(locationCallback)
+        } finally {
+            isEmitting = false
+        }
     }
 
     private val locationRequest = LocationRequest.Builder(

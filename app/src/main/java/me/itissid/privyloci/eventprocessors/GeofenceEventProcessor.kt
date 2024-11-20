@@ -68,6 +68,7 @@ class GeofenceEventProcessor(
     }
 
     private fun processLocation(location: Location) {
+        // TODO: Reverse the location check with debounce time and ENTER/DWELL/EXIT logic.
         Log.d(
             "GeofenceEventProcessor",
             "Processing location ${
@@ -77,6 +78,7 @@ class GeofenceEventProcessor(
                 )
             }"
         )
+
         val distance = FloatArray(1)
         Location.distanceBetween(
             location.latitude, location.longitude,

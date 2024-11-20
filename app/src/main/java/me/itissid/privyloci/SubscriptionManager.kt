@@ -26,10 +26,12 @@ class SubscriptionManager @Inject constructor(
     suspend fun initialize(context: Context) {
 
         // Load subscriptions from database
+        // TODO: Consider using a flow to update the activeSubscriptions itself, that way addition and deletion would not have to start and stop every processor when initialize is called again.
         CoroutineScope(Dispatchers.IO).launch {
             //  val subscriptions = subscriptionDao.getAllSubscriptions()
             // For testing, add a mock subscription
             subscriptionDao.getAllSubscriptions().collect { subscriptions ->
+                // we call initialize.
                 activeSubscriptions.forEach { subscription ->
                     eventProcessors[subscription.subscriptionId]?.stopProcessing()
                 }
@@ -44,7 +46,7 @@ class SubscriptionManager @Inject constructor(
                         "Active subscriptions processed by SubscriptionManager: ${activeSubscriptions.size}"
                     )
                 }
-                subscriptions.forEach { subscription ->
+                activeSubscriptions.forEach { subscription ->
                     val processor = createEventProcessor(subscription, context)
                     processor.startProcessing()
                     eventProcessors[subscription.subscriptionId] = processor
@@ -55,10 +57,10 @@ class SubscriptionManager @Inject constructor(
                         "calling manageSensors for ${activeSubscriptions.size} subscriptions"
                     )
                 }
+                // N2S: Leaving the sensor manager start code here for now. Not sure if this is the right place for it.
                 manageSensors()
             }
         }
-        // N2S: Leaving the sensor manager start code here for now. Not sure if this is the right place for it.
     }
 
     private fun createEventProcessor(subscription: Subscription, context: Context): EventProcessor {
