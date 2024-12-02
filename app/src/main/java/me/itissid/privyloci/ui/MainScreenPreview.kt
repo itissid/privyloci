@@ -1,7 +1,17 @@
 package me.itissid.privyloci.ui
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collection.mutableVectorOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import me.itissid.privyloci.MainScreen
 import me.itissid.privyloci.data.DataProvider
@@ -43,4 +53,3 @@ fun PlacesAndAssetScreenPreview() {
         PlacesAndAssetsScreen(placesList + assetsList)
     }
 }
-

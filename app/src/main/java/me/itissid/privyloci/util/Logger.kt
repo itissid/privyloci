@@ -5,6 +5,9 @@ import android.util.Log
 object Logger {
     private const val TAG = "PrivyLociLogger"
 
+    fun v(className: String, message: String) {
+        Log.v(TAG, "[$className] $message")
+    }
     fun d(className: String, message: String) {
             Log.d(TAG, "[$className] $message")
     }

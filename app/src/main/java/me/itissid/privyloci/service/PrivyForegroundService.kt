@@ -2,6 +2,7 @@ package me.itissid.privyloci.service
 
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
@@ -11,10 +12,10 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.MainActivity
 import me.itissid.privyloci.R
@@ -26,10 +27,6 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.OutOfQuotaPolicy
 
-object ServiceStateHolder {
-    var isServiceRunning = false
-}
-
 @AndroidEntryPoint
 class PrivyForegroundService : Service() {
     @Inject
@@ -40,6 +37,8 @@ class PrivyForegroundService : Service() {
 
     companion object {
         const val CHANNEL_ID = "PrivyLociForegroundServiceChannel"
+        const val ACTION_SERVICE_STARTED = "me.itissid.privyloci.ACTION_SERVICE_STARTED"
+        const val ACTION_SERVICE_STOPPED = "me.itissid.privyloci.ACTION_SERVICE_STOPPED"
     }
 
     override fun onCreate() {
@@ -55,11 +54,13 @@ class PrivyForegroundService : Service() {
 
         // Start the foreground service with notification
         startForegroundServiceWithNotification()
-        ServiceStateHolder.isServiceRunning = true
+
+        val intent = Intent(ACTION_SERVICE_STARTED)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Logger.d(this::class.java.simpleName, "onStartCommand called")
+        Logger.d(this::class.java.simpleName, "Privy Loci  onStartCommand called")
         // Handle any intents or actions here if needed
 
         // Service is already running, so return START_STICKY to keep it alive
@@ -81,7 +82,8 @@ class PrivyForegroundService : Service() {
                 e
             )
         } finally {
-            ServiceStateHolder.isServiceRunning = false
+            val intent = Intent(ACTION_SERVICE_STOPPED)
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
         }
     }
 
@@ -152,15 +154,15 @@ class NotificationDismissedReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         // Have a viewmodel here set so that
         Logger.d(
-            "NotificationDismissedReciever",
-            "Peristent Notification dismissed, stopping FG Service"
+            "NotificationDismissedReceiver",
+            "Persistent Notification dismissed, stopping FG Service"
         )
         context?.let {
-            // TODO: I decided to stop the foreground services en-masse but we could be more sparing.
+            // N2S: I decided to stop the foreground services en-masse but we could be more sparing.
             // We can send an intent to stop services that have private data only and let others run.
             stopPrivyForegroundService(it)
         }
-
+        // TODO: Also update the user preference that the notification was dismissed.
         if (context != null) {
             val workRequest = OneTimeWorkRequestBuilder<ServiceStoppedWorker>()
                 .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)

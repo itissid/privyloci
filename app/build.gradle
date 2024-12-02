@@ -54,6 +54,7 @@ dependencies {
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.animation:animation'
     implementation 'androidx.compose.runtime:runtime'
+    implementation 'androidx.compose.runtime:runtime-livedata'
 
     // HILT related dependencies
     implementation 'androidx.hilt:hilt-navigation-compose:1.2.0'
@@ -89,6 +90,8 @@ dependencies {
 
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     implementation 'com.google.android.gms:play-services-location:21.3.0'
+
+    implementation 'androidx.datastore:datastore-preferences:1.1.1'
 
     def work_version = "2.9.1"
 

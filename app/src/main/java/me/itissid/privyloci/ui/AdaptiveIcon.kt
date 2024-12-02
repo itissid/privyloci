@@ -27,14 +27,14 @@ fun AdaptiveIcon(locationPermissionGranted: Boolean) {
         if (isSystemInDarkTheme()) darkScheme.error else lightScheme.error
     }
     val scale by if (!locationPermissionGranted) {
-        val infiniteTransition = rememberInfiniteTransition()
+        val infiniteTransition = rememberInfiniteTransition(label = "Infinite Transition")
         infiniteTransition.animateFloat(
             initialValue = 0.8f,
             targetValue = 1.2f,
             animationSpec = infiniteRepeatable(
                 animation = tween(durationMillis = 700, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
-            )
+            ), label = "animation"
         )
     } else {
         // When condition is false, simply return a static scale of 1f

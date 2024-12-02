@@ -22,23 +22,29 @@ import androidx.compose.ui.unit.dp
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 
 @Composable
-fun LocationPermissionRationaleDialogue(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+fun LocationPermissionRationaleDialogue(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    message: String,
+    proceedText: String = "Proceed",
+    dismissText: String = "Cancel"
+) {
     AlertDialog(
         onDismissRequest = { onDismiss() },
         confirmButton = {
             TextButton(onClick = { onConfirm() }) {
-                Text("Proceed")
+                Text(proceedText)
             }
         },
         dismissButton = {
             TextButton(onClick = { onDismiss() }) {
-                Text("Cancel")
+                Text(dismissText)
             }
         },
         text = {
-            Text("Location permissions have not been granted. Please enable location permissions for the app to function properly.")
+            Text(message)
         }
-    ) // TODO(Sid): Else show that location permissions are granted
+    )
 }
 
 

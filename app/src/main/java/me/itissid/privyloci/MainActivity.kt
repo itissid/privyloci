@@ -2,14 +2,13 @@ package me.itissid.privyloci
 
 import android.Manifest
 import android.app.Activity
-import android.app.Service
-import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.telephony.ServiceState
-import android.util.Log
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -39,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.compose.NavHost
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 
@@ -53,13 +53,13 @@ import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
 import me.itissid.privyloci.data.DataProvider.processAppContainers
-import me.itissid.privyloci.service.PrivyForegroundService
-import me.itissid.privyloci.service.ServiceStateHolder
-import me.itissid.privyloci.service.startPrivyForegroundService
-import me.itissid.privyloci.service.stopPrivyForegroundService
+import me.itissid.privyloci.service.FG_NOTIFICATION_DISMISSED
 import me.itissid.privyloci.ui.AdaptiveIcon
 import me.itissid.privyloci.ui.LocationPermissionRationaleDialogue
 import me.itissid.privyloci.util.Logger
+import me.itissid.privyloci.viewmodels.ForegroundPermissionRationaleState
+import me.itissid.privyloci.viewmodels.MainViewModel
+import me.itissid.privyloci.viewmodels.RationaleState
 
 // TODO(Sid): Replace with real data after demo.
 data class MockData(
@@ -68,29 +68,38 @@ data class MockData(
     val subscriptions: List<Subscription>
 )
 
-const val TAG = "me.itissid.privyloci.MainActivity"
+const val TAG = "MainActivity"
+
 // move to jetpack compose
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
+    private val wasFGNotificationDismissed = mutableStateOf(false)
+    private val viewModel: MainViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-//        val locationPermissionState = LocationPermissionState(this) {
-//            if (it.hasPermission()) {
-//                Logger.w("MainActivity", "Location permission granted")
-//            } else {
-//                Logger.w("MainActivity", "Location permission denied")
-//            }
-//        }
-//        val (placesList, assetsList, subscriptionsList) = DataProvider.getData()
-//        val places = placesList + assetsList
-//        val userSubscriptions = subscriptionsList.filter { it.type == SubscriptionType.USER }
-//        val appContainers = DataProvider.processAppContainers(subscriptionsList)
         setContent {
             PrivyLociTheme {
-                MainScreenWrapper()
+                MainScreenWrapper(
+                    wasFGNotificationDismissed = wasFGNotificationDismissed.value,
+                    viewModel = viewModel
+                )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        intent?.let {
+            Logger.v(TAG, "Intent received: $it.")
+            val isServiceStopped = it.getBooleanExtra(FG_NOTIFICATION_DISMISSED, false)
+            Logger.v(TAG, "handleIntent: FG_NOTIF_DISMISSED = $isServiceStopped")
+
+            wasFGNotificationDismissed.value = isServiceStopped
         }
     }
 }
@@ -98,10 +107,33 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MainScreenWrapper() {
+fun MainScreenWrapper(wasFGNotificationDismissed: Boolean = false, viewModel: MainViewModel) {
     val context = LocalContext.current as Activity
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    var rationaleState by remember { mutableStateOf(false) }
+
+    var fgPermissionRationaleState by
+    remember { mutableStateOf<ForegroundPermissionRationaleState?>(null) }
+    var fgRunning by remember { mutableStateOf(false) }
+
+    val userVisitedPermissionLauncherPreference by viewModel.userVisitedPermissionLauncher.collectAsState()
+    val userPausedLocationCollection by viewModel.userPausedLocationCollection.collectAsState()
+
+    viewModel.isServiceRunning.observe(lifecycleOwner) { isRunning ->
+        fgRunning = isRunning
+    }
+
+
+    var fgServiceNotificationUserDismissed by remember(wasFGNotificationDismissed) {
+        mutableStateOf(
+            wasFGNotificationDismissed
+        )
+    }
+    Logger.v(
+        TAG,
+        "wasFGNotificationDismissed: $wasFGNotificationDismissed, fgServiceNotificationUserDismissed: $fgServiceNotificationUserDismissed"
+    )
+    var deactivateFGByUser by remember { mutableStateOf(false) }
 
 
     // TODO: Encapsulate the permision code in its own class.
@@ -112,51 +144,152 @@ fun MainScreenWrapper() {
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.POST_NOTIFICATIONS // Add this permission
         )
-    )
+    ) { it -> Logger.i(TAG, it.entries.joinToString(separator = "\n")) }
+
+    if (fgRunning) {
+        Logger.v(TAG, "Privy FG Service is running")
+    } else {
+        Logger.v(TAG, "Privy FG Service is not running")
+    }
 
     if (!foregroundLocationPermissionState.allPermissionsGranted) {
-        Log.d(TAG, "PERMISSION NOT GRANTED")
+        Logger.v(TAG, "PERMISSION NOT GRANTED")
     } else {
-        Log.d(TAG, "PERMISSION GRANTED")
+        Logger.v(TAG, "PERMISSION GRANTED")
     }
     if (foregroundLocationPermissionState.shouldShowRationale) {
-        Log.d(TAG, "SHOULD SHOW RATIONALE")
+        Logger.v(TAG, "SHOULD SHOW RATIONALE")
     } else {
-        Log.d(TAG, "SHOULD NOT SHOW RATIONALE")
+        Logger.v(TAG, "SHOULD NOT SHOW RATIONALE")
     }
 
-    if (rationaleState) {
-        Log.d(TAG, "RATIONALE STATE")
+    if (fgPermissionRationaleState == null) {
+        Logger.v(TAG, "RATIONALE STATE")
     } else {
-        Log.d(TAG, "NO RATIONALE STATE")
+        Logger.v(TAG, "NO RATIONALE STATE")
     }
 
-    // Modify the rationalState in the click handler
+    fgPermissionRationaleState?.let {
+        LocationPermissionRationaleDialogue(
+            onConfirm = {
+                Logger.w(TAG, "Launching multiple permission request from onConfirm")
+                when (it.reason) {
+                    RationaleState.LOCATION_PERMISSION_RATIONALE_SHOULD_BE_SHOWN -> {
+                        try {
+                            foregroundLocationPermissionState.launchMultiplePermissionRequest()
+                            // TODO: At this point  should ALWAYS launch the permissions since the RationaleState is set to this only if shouldShowRationale is true.
+                            //  But testing is needed. Setting this user preference guards against trying to repeatedly launch the permission request, because in android
+                            // 14 it does nothing.
+                            viewModel.setUserVisitedPermissionLauncherPreference(true) //
+                        } finally {
+                            fgPermissionRationaleState = null
+                        }
+                    }
+
+                    RationaleState.MULTIPLE_PERMISSIONS_SHOULD_BE_LAUNCHED -> {
+                        try {
+                            foregroundLocationPermissionState.launchMultiplePermissionRequest()
+                            viewModel.setUserVisitedPermissionLauncherPreference(true) //
+                        } finally {
+                            fgPermissionRationaleState = null
+                        }
+                    }
+
+                    RationaleState.VISIT_SETTINGS -> {
+                        try {
+                            val intent =
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                            context.startActivity(intent)
+                        } finally {
+                            fgPermissionRationaleState = null
+                        }
+                    }
+
+                    RationaleState.PAUSE_LOCATION_COLLECTION -> {
+                        // TODO: set the pause flag that shuts down location collection.
+                        try {
+                            viewModel.setUserPausedLocationCollection(true)
+                        } finally {
+                            fgPermissionRationaleState = null
+                        }
+                    }
+
+                    RationaleState.RESUME_LOCATION_COLLECTION -> {
+                        try {
+                            viewModel.setUserPausedLocationCollection(false)
+                        } finally {
+                            fgPermissionRationaleState = null
+                        }
+                    }
+                }
+            },
+            onDismiss = {
+                Logger.v(TAG, "User dismissed the rationale dialogue")
+                fgPermissionRationaleState = null
+            },
+            message = it.rationaleText,
+            proceedText = it.proceedButtonText,
+            dismissText = it.dismissButtonText
+        )
+    }
+
+    // Modify the rationalState in the spirit of the Unidirectional flow model
     val onLocationIconClick = {
-        if (foregroundLocationPermissionState.shouldShowRationale) {
-            Log.w(TAG, "Setting rationale state to true")
-            rationaleState = true
+        if (!foregroundLocationPermissionState.allPermissionsGranted) {
+            if (foregroundLocationPermissionState.shouldShowRationale) {
+                Logger.v(TAG, "Setting rationale state to be shown")
+                fgPermissionRationaleState = ForegroundPermissionRationaleState(
+                    RationaleState.LOCATION_PERMISSION_RATIONALE_SHOULD_BE_SHOWN,
+                    rationaleText = "In order to use PrivyLoci's location features,  please grant access by accepting the location permission dialog."
+                )
+                viewModel.setUserVisitedPermissionLauncherPreference(false) // Remove the user preference since the system is allowing us to show the rationale.
+            } else {
+                if (!userVisitedPermissionLauncherPreference) {// User has not visited permission launcher code.
+                    Logger.v(TAG, "Setting launch flag for multiple permission request")
+                    fgPermissionRationaleState =
+                        ForegroundPermissionRationaleState(
+                            RationaleState.MULTIPLE_PERMISSIONS_SHOULD_BE_LAUNCHED,
+                            rationaleText = "In order to use PrivyLoci's location feature, press 'Proceed' and grant the 'While in Use' location permissions."
+                        )
+
+                } else { //
+                    // Multiple permissions have been launched once. Now the user will always be directed to the settings when clicking this..
+                    Logger.v(TAG, "Setting rationale state to visit settings")
+                    fgPermissionRationaleState =
+                        ForegroundPermissionRationaleState(
+                            RationaleState.VISIT_SETTINGS,
+                            rationaleText = "In order to use PrivyLoci's location features, press 'Proceed', and in the settings and  select 'Allow only while using the app'"
+                        )
+                }
+            }
         } else {
-            Log.w(TAG, "Launching multiple permission request")
-            foregroundLocationPermissionState.launchMultiplePermissionRequest()
-            // TODO: The system can choose to ignore this request. Raise a warning for the user.
-            // foregroundLocationPermissionState.shouldShowRationale == false, foregroundLocationPermissionState.isGranted == false,
+            // Granted location permission, we can choose to "pause" the collection of the location data and via a user dialogue. Set a preference flag.
+            // N2S: We can also choose to revoke the permissions, but that may make it too difficult for the user to reactivate it on Google's flavor of permission for devices.
+            // Alert dialogue to do this
+            if (!userPausedLocationCollection) {
+                fgPermissionRationaleState =
+                    ForegroundPermissionRationaleState(
+                        RationaleState.PAUSE_LOCATION_COLLECTION,
+                        rationaleText = "You can Proceed App wide location collection by pressing proceed.",
+                        proceedButtonText = "Pause",
+                        dismissButtonText = "Dismiss"
+                    )
+            } else {
+                fgPermissionRationaleState =
+                    ForegroundPermissionRationaleState(
+                        RationaleState.RESUME_LOCATION_COLLECTION,
+                        rationaleText = "You can resume App wide location collection by pressing proceed.",
+                        proceedButtonText = "Resume",
+                        dismissButtonText = "Dismiss"
+                    )
+            }
         }
     }
 
-    // read the state modified in the click handler
-    if (rationaleState) {
-        LocationPermissionRationaleDialogue(
-            onConfirm = {
-                Log.w(TAG, "Launching multiple permission request from onConfirm")
-                foregroundLocationPermissionState.launchMultiplePermissionRequest()
-                rationaleState = false
-            },
-            onDismiss = {
-                rationaleState = false
-            }
-        )
-    }
+    /*End logic to deal with removed FG notification */
+
     // TODO: Consider using a viewmodel to get the data from the daos.
     val database = MainApplication.database
 
@@ -165,8 +298,8 @@ fun MainScreenWrapper() {
     // Coro for the win!
     val places by placeTagDao.getAllPlaceTags().collectAsState(initial = emptyList())
     val subscriptions by subscriptionDao.getAllSubscriptions().collectAsState(initial = emptyList())
-    Log.d(TAG, "Places: ${places.size}")
-    Log.d(TAG, "Subscriptions: ${subscriptions.size}")
+    Logger.v(TAG, "Places: ${places.size}")
+    Logger.v(TAG, "Subscriptions: ${subscriptions.size}")
     val userSubscriptions = subscriptions.filter { it.type == SubscriptionType.USER }
     val appContainers = processAppContainers(subscriptions)
 
@@ -174,25 +307,50 @@ fun MainScreenWrapper() {
         appContainers,
         userSubscriptions,
         places,
-        foregroundLocationPermissionState.allPermissionsGranted,
+        foregroundLocationPermissionState.allPermissionsGranted && !userPausedLocationCollection,
         onLocationIconClick
     )
 
-    if (foregroundLocationPermissionState.allPermissionsGranted && !ServiceStateHolder.isServiceRunning) {
-        // TODO: On starting the service I want to show some of the data about how many subscriptions are active
-        // and being tracked.
-        startPrivyForegroundService(context)
-    } else if (!foregroundLocationPermissionState.allPermissionsGranted) {
-        // TODO: Warn the user after some time(probably like in a timer) that the service is not running
-        // because the permission is not granted.
-        stopPrivyForegroundService(context)
-    }
+//    if (foregroundLocationPermissionState.allPermissionsGranted) {
+//        // if the service is not started and the user has not dismissed the FG notification call the service
+//        // if the service is not started and the user has dismissed the the FG notification, show the user a dialogue which starts the FG service on confirmation.
+//        // TODO: On starting the service I want to show some of the data about how many subscriptions are active
+//        // and being tracked.
+//        if (!fgRunning) {
+//            if (fgServiceNotificationUserDismissed) {
+//                // User swipes left and dismisses the foreground service
+//                if (!deactivateFGByUser) {
+//                   Logger.v(TAG, "Displaying the FG service notification dismissed dialogue")
+//                    FGDismissedStoppedDialog(onDismiss = {
+//                       Logger.v(
+//                            TAG,
+//                            "User dismissed the FG service notification and does not want to start  it again."
+//                        )
+//                        deactivateFGByUser = true
+//                    }, onRestartService = {
+//                       Logger.v(TAG, "Attempting to start the FG service again.")
+//                        fgServiceNotificationUserDismissed = false
+//                        startPrivyForegroundService(context)
+//                    })
+//                }
+//            }
+////            } else {
+////                // Service is not running due to some other reason like killed by the system
+////               Logger.v(TAG, "Attempting to start the FG service as normal")
+////                startPrivyForegroundService(context)
+////            }
+//        } else {
+//           Logger.v(TAG, "Privy FG Service detected as already running")
+//        }
+//    } else if (!foregroundLocationPermissionState.allPermissionsGranted) {
+//        // call if the service is not stopped already.
+//        // TODO: Warn the user after some time(probably like in a timer) that the service is not running
+//        // because the permission is not granted.
+//        if (fgRunning) {
+//            stopPrivyForegroundService(context)
+//        }
+//    }
 }
-
-
-data class RationaleState(
-    val isInitialized: Boolean
-)
 
 @Composable
 fun MainScreen(
@@ -247,19 +405,10 @@ fun TopBar(
     TopAppBar(
         title = { Text("Privy Loci") },
         actions = {
-            if (locationPermissionGranted) {
                 IconButton(onClick = onLocationIconClick) {
-                    AdaptiveIcon(locationPermissionGranted = true)
+                    AdaptiveIcon(locationPermissionGranted = locationPermissionGranted)
                 }
                 Icon(Icons.Filled.Menu, contentDescription = "Menu")
-            } else {
-                IconButton(onClick = {/*TODO: Explainer dial that is dismissable*/ }) {
-                    AdaptiveIcon(locationPermissionGranted = false)
-                }
-                Icon(Icons.Filled.Menu, contentDescription = "Menu")
-
-            }
-
         }
     )
 }
