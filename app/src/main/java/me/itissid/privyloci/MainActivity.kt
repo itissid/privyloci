@@ -35,10 +35,13 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.flowWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 
@@ -52,8 +55,11 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import me.itissid.privyloci.data.DataProvider.processAppContainers
 import me.itissid.privyloci.service.FG_NOTIFICATION_DISMISSED
+import me.itissid.privyloci.service.startPrivyForegroundService
+import me.itissid.privyloci.service.stopPrivyForegroundService
 import me.itissid.privyloci.ui.AdaptiveIcon
 import me.itissid.privyloci.ui.LocationPermissionRationaleDialogue
 import me.itissid.privyloci.util.Logger
@@ -80,7 +86,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             PrivyLociTheme {
                 MainScreenWrapper(
-                    wasFGNotificationDismissed = wasFGNotificationDismissed.value,
                     viewModel = viewModel
                 )
             }
@@ -98,7 +103,7 @@ class MainActivity : ComponentActivity() {
             Logger.v(TAG, "Intent received: $it.")
             val isServiceStopped = it.getBooleanExtra(FG_NOTIFICATION_DISMISSED, false)
             Logger.v(TAG, "handleIntent: FG_NOTIF_DISMISSED = $isServiceStopped")
-
+            viewModel.setUserPausedLocationCollection(isServiceStopped)
             wasFGNotificationDismissed.value = isServiceStopped
         }
     }
@@ -107,34 +112,12 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MainScreenWrapper(wasFGNotificationDismissed: Boolean = false, viewModel: MainViewModel) {
+fun MainScreenWrapper(viewModel: MainViewModel) {
     val context = LocalContext.current as Activity
     val lifecycleOwner = LocalLifecycleOwner.current
-
-
+    // Variables for managing location and other sensor permissions.
     var fgPermissionRationaleState by
-    remember { mutableStateOf<ForegroundPermissionRationaleState?>(null) }
-    var fgRunning by remember { mutableStateOf(false) }
-
-    val userVisitedPermissionLauncherPreference by viewModel.userVisitedPermissionLauncher.collectAsState()
-    val userPausedLocationCollection by viewModel.userPausedLocationCollection.collectAsState()
-
-    viewModel.isServiceRunning.observe(lifecycleOwner) { isRunning ->
-        fgRunning = isRunning
-    }
-
-
-    var fgServiceNotificationUserDismissed by remember(wasFGNotificationDismissed) {
-        mutableStateOf(
-            wasFGNotificationDismissed
-        )
-    }
-    Logger.v(
-        TAG,
-        "wasFGNotificationDismissed: $wasFGNotificationDismissed, fgServiceNotificationUserDismissed: $fgServiceNotificationUserDismissed"
-    )
-    var deactivateFGByUser by remember { mutableStateOf(false) }
-
+    rememberSaveable { mutableStateOf<ForegroundPermissionRationaleState?>(null) }
 
     // TODO: Encapsulate the permision code in its own class.
     // TODO: Ask for background permissions if I don't take the foreground permissions route.
@@ -144,13 +127,23 @@ fun MainScreenWrapper(wasFGNotificationDismissed: Boolean = false, viewModel: Ma
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.POST_NOTIFICATIONS // Add this permission
         )
-    ) { it -> Logger.i(TAG, it.entries.joinToString(separator = "\n")) }
+    ) { it -> Logger.v(TAG, it.entries.joinToString(separator = "\n")) }
 
-    if (fgRunning) {
-        Logger.v(TAG, "Privy FG Service is running")
-    } else {
-        Logger.v(TAG, "Privy FG Service is not running")
+    val userVisitedPermissionLauncherPreference by viewModel.userVisitedPermissionLauncher.collectAsState()
+    val userPausedLocationCollection by viewModel.userPausedLocationCollection.collectAsState(
+        initial = false
+    )
+
+    // Variables for controlling the foreground service
+    var fgRunning by remember { mutableStateOf(false) }
+    viewModel.isServiceRunning.observe(lifecycleOwner) { isRunning ->
+        fgRunning = isRunning
     }
+
+    Logger.v(
+        TAG,
+        "userPausedLocationCollection: $userPausedLocationCollection, isServiceRunning: $fgRunning"
+    )
 
     if (!foregroundLocationPermissionState.allPermissionsGranted) {
         Logger.v(TAG, "PERMISSION NOT GRANTED")
@@ -272,7 +265,7 @@ fun MainScreenWrapper(wasFGNotificationDismissed: Boolean = false, viewModel: Ma
                 fgPermissionRationaleState =
                     ForegroundPermissionRationaleState(
                         RationaleState.PAUSE_LOCATION_COLLECTION,
-                        rationaleText = "You can Proceed App wide location collection by pressing proceed.",
+                        rationaleText = "You can pause App wide location collection by pressing Pause",
                         proceedButtonText = "Pause",
                         dismissButtonText = "Dismiss"
                     )
@@ -311,45 +304,25 @@ fun MainScreenWrapper(wasFGNotificationDismissed: Boolean = false, viewModel: Ma
         onLocationIconClick
     )
 
-//    if (foregroundLocationPermissionState.allPermissionsGranted) {
-//        // if the service is not started and the user has not dismissed the FG notification call the service
-//        // if the service is not started and the user has dismissed the the FG notification, show the user a dialogue which starts the FG service on confirmation.
-//        // TODO: On starting the service I want to show some of the data about how many subscriptions are active
-//        // and being tracked.
-//        if (!fgRunning) {
-//            if (fgServiceNotificationUserDismissed) {
-//                // User swipes left and dismisses the foreground service
-//                if (!deactivateFGByUser) {
-//                   Logger.v(TAG, "Displaying the FG service notification dismissed dialogue")
-//                    FGDismissedStoppedDialog(onDismiss = {
-//                       Logger.v(
-//                            TAG,
-//                            "User dismissed the FG service notification and does not want to start  it again."
-//                        )
-//                        deactivateFGByUser = true
-//                    }, onRestartService = {
-//                       Logger.v(TAG, "Attempting to start the FG service again.")
-//                        fgServiceNotificationUserDismissed = false
-//                        startPrivyForegroundService(context)
-//                    })
-//                }
-//            }
-////            } else {
-////                // Service is not running due to some other reason like killed by the system
-////               Logger.v(TAG, "Attempting to start the FG service as normal")
-////                startPrivyForegroundService(context)
-////            }
-//        } else {
-//           Logger.v(TAG, "Privy FG Service detected as already running")
-//        }
-//    } else if (!foregroundLocationPermissionState.allPermissionsGranted) {
-//        // call if the service is not stopped already.
-//        // TODO: Warn the user after some time(probably like in a timer) that the service is not running
-//        // because the permission is not granted.
-//        if (fgRunning) {
-//            stopPrivyForegroundService(context)
-//        }
-//    }
+    if (foregroundLocationPermissionState.allPermissionsGranted) {
+        if (!fgRunning) {
+            if (!userPausedLocationCollection) {
+                Logger.v(TAG, "Attempting to start the FG service.")
+                startPrivyForegroundService(context)
+            } else {
+                Logger.v(TAG, "FG Rationale state is $fgPermissionRationaleState")
+            }
+        } else { // fg service is running
+            if (fgPermissionRationaleState?.reason == RationaleState.PAUSE_LOCATION_COLLECTION) {
+                Logger.v(TAG, "Attempting to stopping the FG service")
+                stopPrivyForegroundService(context)
+                viewModel.setUserPausedLocationCollection(true)
+            } else {
+                Logger.v(TAG, "FG Rationale state is $fgPermissionRationaleState")
+            }
+        }
+    }
+
 }
 
 @Composable

@@ -131,7 +131,9 @@ class PrivyForegroundService : Service() {
         val deleteIntent = Intent(this, NotificationDismissedReceiver::class.java)
         val pendingDeleteIntent =
             PendingIntent.getBroadcast(this, 0, deleteIntent, PendingIntent.FLAG_IMMUTABLE)
-        val notificationIntent = Intent(this, MainActivity::class.java)
+        val notificationIntent = Intent(this, MainActivity::class.java).apply {
+            action = "ACTION_FROM_FOREGROUND_SERVICE_NOTIFICATION"
+        }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE
         )

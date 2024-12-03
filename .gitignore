@@ -46,4 +46,5 @@ docs/FG Evolve.rtf
 docs/LocationPermissionEvolve.md
 
 app/src/main/java/me/itissid/privyloci/ui/Scratch.kt
+app/src/main/java/me/itissid/privyloci/ui/ScratchKotlin.kt
 

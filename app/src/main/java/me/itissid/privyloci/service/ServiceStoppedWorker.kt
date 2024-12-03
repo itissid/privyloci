@@ -34,12 +34,13 @@ class ServiceStoppedWorker(
         val notificationIntent = Intent(applicationContext, MainActivity::class.java).apply {
             putExtra(FG_NOTIFICATION_DISMISSED, true)
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            action = "ACTION_FROM_SERVICE_STOPPED_NOTIFICATION"
         }
         val pendingIntent = PendingIntent.getActivity(
             applicationContext,
-            0,
+            1,
             notificationIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_IMMUTABLE
 
         )
 
