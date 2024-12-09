@@ -5,10 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +13,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import me.itissid.privyloci.UserPreferences
+import me.itissid.privyloci.kvrepository.UserPreferences
+import me.itissid.privyloci.kvrepository.Repository
 import me.itissid.privyloci.service.PrivyForegroundService
 import me.itissid.privyloci.util.Logger
 import javax.inject.Inject
@@ -52,92 +50,81 @@ data class ForegroundPermissionRationaleState(
 @HiltViewModel
 class MainViewModel @Inject constructor(
     application: Application,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val repository: Repository
 ) :
     AndroidViewModel(application) {
 
-    private val _isServiceRunning = MutableLiveData<Boolean>()
-    val isServiceRunning: LiveData<Boolean> get() = _isServiceRunning
+    val isServiceRunning: StateFlow<Boolean>
+        get() = repository.isServiceRunning.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = false
+        )
 
     // Expose preferences as StateFlow public variables.
-    val wasFGPermissionRationaleDismissed: StateFlow<Boolean> =
-        userPreferences.wasFGPerrmissionRationaleDismissed
+    val wasFGPermissionRationaleDismissed: StateFlow<Result<Boolean>> =
+        repository.wasFGPermissionRationaleDismissed
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = false
+                initialValue = Result.success(false)
             )
 
-    val wasFGPersistentNotificationDismissed: StateFlow<Boolean> =
-        userPreferences.wasFGPersistentNotificationDismissed
+    val wasFGPersistentNotificationDismissed: StateFlow<Result<Boolean>> =
+        repository.wasFGPersistentNotificationDismissed
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = false
+                initialValue = Result.success(false)
             )
 
-    val wasReactivateFGRationaleDismissed: StateFlow<Boolean> =
-        userPreferences.wasReactivateFGRationaleDismissed
+    val wasReactivateFGRationaleDismissed: StateFlow<Result<Boolean>> =
+        repository.wasReactivateFGRationaleDismissed
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = false
+                initialValue = Result.success(false)
             )
 
-    val userVisitedPermissionLauncher: StateFlow<Boolean> =
+    val userVisitedPermissionLauncher: StateFlow<Result<Boolean>> =
         userPreferences.userVisitedPermissionLauncher
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = false
+                initialValue = Result.success(false)
             )
-    val userPausedLocationCollection: StateFlow<Boolean> =
+    val userPausedLocationCollection: StateFlow<Result<Boolean>> =
         userPreferences.userPausedLocationCollection
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = false
+                initialValue = Result.success(false)
             )
-
-    private val serviceStatusReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action) {
-                PrivyForegroundService.ACTION_SERVICE_STARTED -> _isServiceRunning.value = true
-                PrivyForegroundService.ACTION_SERVICE_STOPPED -> _isServiceRunning.value = false
-            }
-        }
-    }
-
-    init {
-        // Register the receiver
-        val filter = IntentFilter().apply {
-            addAction(PrivyForegroundService.ACTION_SERVICE_STARTED)
-            addAction(PrivyForegroundService.ACTION_SERVICE_STOPPED)
-        }
-        LocalBroadcastManager.getInstance(getApplication())
-            .registerReceiver(serviceStatusReceiver, filter)
-    }
 
     fun setFGPermissionRationaleDismissed(dismissed: Boolean) {
         viewModelScope.launch {
-            userPreferences.setFGPermissionRationaleDismissed(dismissed)
+            repository.setFGPermissionRationaleDismissed(dismissed)
         }
     }
 
     fun setFGPersistentNotificationDismissed(dismissed: Boolean) {
         viewModelScope.launch {
-            userPreferences.setFGPersistentNotificationDismissed(dismissed)
+            repository.setFGPersistentNotificationDismissed(dismissed)
         }
     }
 
     fun setReactivateFGRationaleDismissed(dismissed: Boolean) {
         viewModelScope.launch {
-            userPreferences.setReactivateFGRationaleDismissed(dismissed)
+            repository.setReactivateFGRationaleDismissed(dismissed)
         }
     }
 
     fun setUserPausedLocationCollection(paused: Boolean) {
         viewModelScope.launch {
+            if (!paused) {
+                // Should we
+            }
             userPreferences.setUserPausedLocationCollection(paused)
         }
     }
@@ -153,10 +140,14 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        // Unregister the receiver
-        LocalBroadcastManager.getInstance(getApplication())
-            .unregisterReceiver(serviceStatusReceiver)
+    fun setServiceRunning(isRunning: Boolean) {
+        viewModelScope.launch {
+            try {
+                Logger.v("MainViewModel", "Setting ServiceRunning to $isRunning")
+                repository.setServiceRunning(isRunning)
+            } catch (e: Exception) {
+                Logger.e("MainViewModel", "Error setting ServiceRunning", e)
+            }
+        }
     }
 }

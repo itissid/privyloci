@@ -13,7 +13,11 @@ object Logger {
     }
 
     fun e(className: String, message: String, throwable: Throwable? = null) {
+        if (throwable != null) {
             Log.e(TAG, "[$className] $message", throwable)
+        } else {
+            Log.e(TAG, "[$className] $message (throwable is null no stack trace :()")
+        }
     }
 
     fun i(className: String, message: String) {

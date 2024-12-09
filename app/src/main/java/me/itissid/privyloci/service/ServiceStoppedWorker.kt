@@ -15,8 +15,7 @@ import me.itissid.privyloci.MainActivity
 import me.itissid.privyloci.R
 import me.itissid.privyloci.service.PrivyForegroundService.Companion.CHANNEL_ID
 
-const val FG_NOTIFICATION_DISMISSED = "FOREGROUND_NOTIFICATION_DISMISSED"
-const val FG_NOTIFICATION_DISMISSED_NOTIFICATION_ID = 2
+const val FG_NOTIFICATION_DISMISSED_DISMISSAL_NOTIFICATION_ID = 2
 class ServiceStoppedWorker(
     context: Context,
     params: WorkerParameters
@@ -32,7 +31,6 @@ class ServiceStoppedWorker(
             applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val notificationIntent = Intent(applicationContext, MainActivity::class.java).apply {
-            putExtra(FG_NOTIFICATION_DISMISSED, true)
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             action = "ACTION_FROM_SERVICE_STOPPED_NOTIFICATION"
         }
@@ -53,7 +51,10 @@ class ServiceStoppedWorker(
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(FG_NOTIFICATION_DISMISSED_NOTIFICATION_ID, notification)
+        notificationManager.notify(
+            FG_NOTIFICATION_DISMISSED_DISMISSAL_NOTIFICATION_ID,
+            notification
+        )
     }
 }
 

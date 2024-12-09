@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="PrivyLoci">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-10-30T21:06:44.027740Z">
+        <DropdownSelection timestamp="2024-11-21T23:25:27.419199Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=29071FDH300966" />
@@ -36,6 +36,12 @@
         <DialogSelection />
       </SelectionState>
       <SelectionState runConfigName="PermissionDeniedScreenPreview">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="Test - Test Night mode">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="Test - Test Day mode">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>

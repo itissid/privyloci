@@ -2,6 +2,7 @@ package me.itissid.privyloci
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -33,8 +34,10 @@ import androidx.navigation.compose.composable
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -55,9 +58,10 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.data.DataProvider.processAppContainers
-import me.itissid.privyloci.service.FG_NOTIFICATION_DISMISSED
+//import me.itissid.privyloci.service.FG_NOTIFICATION_DISMISSED
 import me.itissid.privyloci.service.startPrivyForegroundService
 import me.itissid.privyloci.service.stopPrivyForegroundService
 import me.itissid.privyloci.ui.AdaptiveIcon
@@ -79,7 +83,7 @@ const val TAG = "MainActivity"
 // move to jetpack compose
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val wasFGNotificationDismissed = mutableStateOf(false)
+    //    private val wasFGNotificationDismissed = mutableStateOf(false)
     private val viewModel: MainViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,11 +104,11 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         intent?.let {
-            Logger.v(TAG, "Intent received: $it.")
-            val isServiceStopped = it.getBooleanExtra(FG_NOTIFICATION_DISMISSED, false)
-            Logger.v(TAG, "handleIntent: FG_NOTIF_DISMISSED = $isServiceStopped")
-            viewModel.setUserPausedLocationCollection(isServiceStopped)
-            wasFGNotificationDismissed.value = isServiceStopped
+            Logger.i(TAG, "Intent received: $it.")
+//            val potentiallyFGServiceStopped = it.getBooleanExtra(FG_NOTIFICATION_DISMISSED, false)
+//            Logger.v(TAG, "handleIntent: FG_NOTIF_DISMISSED = $potentiallyFGServiceStopped")
+//            viewModel.setUserPausedLocationCollection(potentiallyFGServiceStopped)
+//            wasFGNotificationDismissed.value = potentiallyFGServiceStopped
         }
     }
 }
@@ -129,20 +133,31 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
         )
     ) { it -> Logger.v(TAG, it.entries.joinToString(separator = "\n")) }
 
-    val userVisitedPermissionLauncherPreference by viewModel.userVisitedPermissionLauncher.collectAsState()
-    val userPausedLocationCollection by viewModel.userPausedLocationCollection.collectAsState(
-        initial = false
-    )
+    val userVisitedPermissionLauncherPreference =
+        viewModel.userVisitedPermissionLauncher.collectAsState().value.getOrDefault(false)
 
-    // Variables for controlling the foreground service
-    var fgRunning by remember { mutableStateOf(false) }
-    viewModel.isServiceRunning.observe(lifecycleOwner) { isRunning ->
-        fgRunning = isRunning
+    val userPausedLocationCollection =
+        viewModel.userPausedLocationCollection.collectAsState().value.getOrDefault(
+            false
+    )
+    val userDismissedFGNotification = remember { mutableStateOf<Boolean>(false) }
+
+    val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            viewModel.wasFGPersistentNotificationDismissed.collect { result ->
+                userDismissedFGNotification.value = result.getOrDefault(false)
+            }
+        }
     }
 
     Logger.v(
         TAG,
-        "userPausedLocationCollection: $userPausedLocationCollection, isServiceRunning: $fgRunning"
+        "userVisitedPermissionLauncherPreference: $userVisitedPermissionLauncherPreference"
+    )
+    Logger.v(
+        TAG,
+        "userPausedLocationCollection: $userPausedLocationCollection"
     )
 
     if (!foregroundLocationPermissionState.allPermissionsGranted) {
@@ -157,9 +172,12 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
     }
 
     if (fgPermissionRationaleState == null) {
-        Logger.v(TAG, "RATIONALE STATE")
+        Logger.v(
+            TAG,
+            "NULL RATIONALE STATE "
+        )
     } else {
-        Logger.v(TAG, "NO RATIONALE STATE")
+        Logger.v(TAG, "RATIONALE STATE: $fgPermissionRationaleState")
     }
 
     fgPermissionRationaleState?.let {
@@ -201,7 +219,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
                     }
 
                     RationaleState.PAUSE_LOCATION_COLLECTION -> {
-                        // TODO: set the pause flag that shuts down location collection.
+                        // TODO: set the pause flag that shuts down Location collection etc.
                         try {
                             viewModel.setUserPausedLocationCollection(true)
                         } finally {
@@ -212,6 +230,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
                     RationaleState.RESUME_LOCATION_COLLECTION -> {
                         try {
                             viewModel.setUserPausedLocationCollection(false)
+                            viewModel.setFGPersistentNotificationDismissed(false)
                         } finally {
                             fgPermissionRationaleState = null
                         }
@@ -259,7 +278,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
             }
         } else {
             // Granted location permission, we can choose to "pause" the collection of the location data and via a user dialogue. Set a preference flag.
-            // N2S: We can also choose to revoke the permissions, but that may make it too difficult for the user to reactivate it on Google's flavor of permission for devices.
+            // N2S: We can also choose to revoke the FG permissions, but that may make it too difficult for the user to reactivate the buried setting  on Google's flavor of permission for devices.
             // Alert dialogue to do this
             if (!userPausedLocationCollection) {
                 fgPermissionRationaleState =
@@ -283,7 +302,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
 
     /*End logic to deal with removed FG notification */
 
-    // TODO: Consider using a viewmodel to get the data from the daos.
+    // TODO: Consider using a viewmodel to get the data from the daos. That will keep them from not being re-initialized .
     val database = MainApplication.database
 
     val subscriptionDao = database.subscriptionDao()
@@ -300,29 +319,55 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
         appContainers,
         userSubscriptions,
         places,
-        foregroundLocationPermissionState.allPermissionsGranted && !userPausedLocationCollection,
+        (foregroundLocationPermissionState.allPermissionsGranted && !userPausedLocationCollection),
         onLocationIconClick
     )
 
     if (foregroundLocationPermissionState.allPermissionsGranted) {
-        if (!fgRunning) {
-            if (!userPausedLocationCollection) {
+        LaunchPrivyForeGroundService(
+            context,
+            userDismissedFGNotification.value,
+            viewModel.userPausedLocationCollection,
+            viewModel.isServiceRunning
+        )
+    }
+}
+
+@Composable
+fun LaunchPrivyForeGroundService(
+    context: Context,
+    userDismissedForegroundNotification: Boolean,
+    userPausedLocationCollectionStateFlow: StateFlow<Result<Boolean>>,
+    isRunningStateFlow: StateFlow<Boolean>
+) {
+    val userPausedLocationCollection =
+        userPausedLocationCollectionStateFlow.collectAsState().value.getOrDefault(false)
+    val isRunning = isRunningStateFlow.collectAsState().value
+    Logger.d(
+        TAG,
+        "User dismissed FG notification: $userDismissedForegroundNotification, User paused location collection: $userPausedLocationCollection, isRunning: $isRunning"
+    )
+    // N2S: If for some reason the service is not launched by LaunchedEffect, if say the user swipes the app up too "quickly".
+    LaunchedEffect(userPausedLocationCollection, isRunning) {
+        if (!userPausedLocationCollection) {
+            if (!isRunning) {
                 Logger.v(TAG, "Attempting to start the FG service.")
                 startPrivyForegroundService(context)
             } else {
-                Logger.v(TAG, "FG Rationale state is $fgPermissionRationaleState")
+                Logger.w(
+                    TAG,
+                    "User has not paused location collection but FG service detected running"
+                )
             }
-        } else { // fg service is running
-            if (fgPermissionRationaleState?.reason == RationaleState.PAUSE_LOCATION_COLLECTION) {
+        } else { //
+            if (isRunning) {
                 Logger.v(TAG, "Attempting to stopping the FG service")
                 stopPrivyForegroundService(context)
-                viewModel.setUserPausedLocationCollection(true)
             } else {
-                Logger.v(TAG, "FG Rationale state is $fgPermissionRationaleState")
+                Logger.w(TAG, "User Paused Location Collection but FG service is not detected")
             }
         }
     }
-
 }
 
 @Composable
