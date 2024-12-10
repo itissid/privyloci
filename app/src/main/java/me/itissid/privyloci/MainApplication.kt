@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.data.DataProvider
+import me.itissid.privyloci.datamodels.toEntity
 import me.itissid.privyloci.db.AppDatabase
 import me.itissid.privyloci.eventprocessors.GeofenceEventProcessor
 import me.itissid.privyloci.service.PrivyForegroundService
@@ -84,7 +85,7 @@ class MainApplication : Application() {
                 subscriptionDao.deleteSubscription(it)
             }
             // Insert data into the database
-            placeTagDao.insertPlaceTags(places)
+            placeTagDao.insertPlaceTags(places.map { it.toEntity() })
             subscriptionDao.insertSubscriptions(subscriptionsList)
         }
     }

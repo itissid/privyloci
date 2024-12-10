@@ -59,8 +59,10 @@ import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.data.DataProvider.processAppContainers
+import me.itissid.privyloci.datamodels.toDomain
 //import me.itissid.privyloci.service.FG_NOTIFICATION_DISMISSED
 import me.itissid.privyloci.service.startPrivyForegroundService
 import me.itissid.privyloci.service.stopPrivyForegroundService
@@ -315,7 +317,8 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
     val subscriptionDao = database.subscriptionDao()
     val placeTagDao = database.placeTagDao()
     // Coro for the win!
-    val places by placeTagDao.getAllPlaceTags().collectAsState(initial = emptyList())
+    val places by placeTagDao.getAllPlaceTags().map { entities -> entities.map { it.toDomain() } }
+        .collectAsState(initial = emptyList())
     val subscriptions by subscriptionDao.getAllSubscriptions().collectAsState(initial = emptyList())
     Logger.v(TAG, "Places: ${places.size}")
     Logger.v(TAG, "Subscriptions: ${subscriptions.size}")

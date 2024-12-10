@@ -31,8 +31,8 @@ interface SubscriptionDao {
 @Dao
 interface PlaceTagDao {
     @Query("SELECT * FROM place_tags")
-    fun getAllPlaceTags(): Flow<List<PlaceTag>>
+    fun getAllPlaceTags(): Flow<List<PlaceTagEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertPlaceTags(placeTags: List<PlaceTag>)
+    suspend fun insertPlaceTags(placeTags: List<PlaceTagEntity>)
 }

@@ -35,7 +35,7 @@ object DataProvider {
                 {
                     "id": 3,
                     "name": "Headphones",
-                    "type": "ASSET",
+                    "type": "ASSET_BLE_HEADPHONES",
                     "metadata": "{ \"ble_id\": \"ABC123\" }",
                     "createdAt": 1693048323,
                     "isActive": true
@@ -43,7 +43,7 @@ object DataProvider {
                 {
                     "id": 4,
                     "name": "Car",
-                    "type": "ASSET",
+                    "type": "ASSET_BLE_CAR",
                     "metadata": "{ \"ble_id\": \"XYZ789\" }",
                     "createdAt": 1693048323,
                     "isActive": true
@@ -174,12 +174,16 @@ object DataProvider {
 
         // Parse places
         val placesJson = gson.toJson(dataMap["places"])
-        val placeTagListType: Type = object : TypeToken<List<PlaceTag>>() {}.type
-        val placesList: List<PlaceTag> = gson.fromJson(placesJson, placeTagListType)
+        val placeTagListType: Type = object : TypeToken<List<PlaceTagEntity>>() {}.type
+        val _placesList: List<PlaceTagEntity> =
+            gson.fromJson(placesJson, placeTagListType)
+        val placesList: List<PlaceTag> = _placesList.map { it.toDomain() }
 
         // Parse assets
         val assetsJson = gson.toJson(dataMap["assets"])
-        val assetsList: List<PlaceTag> = gson.fromJson(assetsJson, placeTagListType)
+        val _assetsList: List<PlaceTagEntity> = gson.fromJson(assetsJson, placeTagListType)
+        val assetsList: List<PlaceTag> = _assetsList.map { it.toDomain() }
+
 
         // Parse subscriptions
         val subscriptionsJson = gson.toJson(dataMap["subscriptions"])

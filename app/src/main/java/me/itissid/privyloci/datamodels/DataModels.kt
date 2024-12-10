@@ -1,6 +1,5 @@
 package me.itissid.privyloci.datamodels
 
-import android.media.metrics.Event
 import android.os.Parcelable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -16,17 +15,116 @@ import kotlinx.serialization.Serializable
 @Serializable
 @Parcelize
 @Entity(tableName = "place_tags")
-data class PlaceTag(
+data class PlaceTagEntity(
     @PrimaryKey val id: Int,
     val name: String,
-    val type: PlaceTagType, // enum {PLACE, ASSET}
+    val type: String, // enum {PLACE, ASSET}
     val metadata: String, // Encrypted JSON string
     val createdAt: Long,
     val isActive: Boolean
 ) : Parcelable
 
-enum class PlaceTagType {
-    PLACE, ASSET
+fun PlaceTagEntity.toDomain(): PlaceTag {
+    val domainType = when (type) {
+        "PLACE" -> PlaceTagType.PLACE
+        "ASSET_BLE_HEADPHONES" -> PlaceTagType.ASSET.BLEHeadphones
+        "ASSET_BLE_CAR" -> PlaceTagType.ASSET.BLECar
+        else -> throw IllegalArgumentException("Unknown type: $type")
+    }
+
+    return PlaceTag(
+        id = id,
+        name = name,
+        type = domainType,
+        metadata = metadata,
+        createdAt = createdAt,
+        isActive = isActive
+    )
+}
+
+sealed class PlaceTagType {
+    object PLACE : PlaceTagType()
+
+    // Group all asset-related types under ASSET.
+    sealed class ASSET : PlaceTagType() {
+        object BLEHeadphones : ASSET()
+        object BLECar : ASSET()
+        // Future devices as we support them
+    }
+}
+
+fun String.toPlaceTagType(): PlaceTagType {
+    return when (this) {
+        "PLACE" -> PlaceTagType.PLACE
+        "ASSET_BLE_HEADPHONES" -> PlaceTagType.ASSET.BLEHeadphones
+        "ASSET_BLE_CAR" -> PlaceTagType.ASSET.BLECar
+        else -> throw IllegalArgumentException("Unknown type: $this")
+    }
+}
+
+data class PlaceTag(
+    val id: Int,
+    val name: String,
+    val type: PlaceTagType,
+    val metadata: String,
+    val createdAt: Long,
+    val isActive: Boolean
+) {
+    private fun parseMetadata(): MutableMap<String, Any> {
+        return try {
+            Gson().fromJson<Map<String, Any>>(metadata, Map::class.java).toMutableMap()
+        } catch (e: Exception) {
+            mutableMapOf()
+        }
+    }
+
+    // Retrieve the selected BLE device address if this PlaceTag is BLEHeadphones.
+    fun getSelectedDeviceAddress(): String? {
+        return when (type) {
+            PlaceTagType.PLACE -> null
+            is PlaceTagType.ASSET.BLECar, PlaceTagType.ASSET.BLEHeadphones -> {
+                parseMetadata()["selected_ble_device"] as? String
+            }
+        }
+    }
+
+    // Return a copy of this PlaceTag with the updated device address in metadata.
+    // This is only meaningful if the type is BLEHeadphones; otherwise, we do nothing special.
+    fun withSelectedDeviceAddress(address: String?): PlaceTag {
+        val map = parseMetadata()
+        if (address == null) {
+            map.remove("selected_ble_device")
+        } else {
+            map["selected_ble_device"] = address
+        }
+        val newMetadata = Gson().toJson(map)
+        return copy(metadata = newMetadata)
+    }
+}
+
+fun PlaceTagType.tagString(): String {
+    return when (this) {
+        is PlaceTagType.PLACE -> "Place"
+        is PlaceTagType.ASSET.BLEHeadphones -> "Headphones"
+        is PlaceTagType.ASSET.BLECar -> "Car"
+    }
+}
+
+fun PlaceTag.toEntity(): PlaceTagEntity {
+    val dbType = when (type) {
+        PlaceTagType.PLACE -> "PLACE"
+        is PlaceTagType.ASSET.BLEHeadphones -> "ASSET_BLE_HEADPHONES"
+        is PlaceTagType.ASSET.BLECar -> "ASSET_BLE_CAR"
+    }
+
+    return PlaceTagEntity(
+        id = id,
+        name = name,
+        type = dbType,
+        metadata = metadata,
+        createdAt = createdAt,
+        isActive = isActive
+    )
 }
 
 @Serializable
