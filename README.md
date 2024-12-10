@@ -17,22 +17,20 @@ To think that the idea is, “well, isn't this just a technical issue like diffe
 # Is it meant to be an App? How can I use it?
 Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service an Infrastructure as a Service(IaaS) on device to enable users and and 3p-apps alike. The demo is for giving you a feel for what the experience is like. 
 
+[![*The infamous multi permission launcher for location permissions](./docs/App_MultiPermission_Launcher_Screen_recording_20241210_091435.gif](https://github.com/user-attachments/assets/19fe766d-84b7-48c7-abd5-06247b9315f8)
 
-[![Vid 1](./docs/App_MultiPermission_Launcher_Screen_recording_20241210_091435.gif](https://github.com/user-attachments/assets/19fe766d-84b7-48c7-abd5-06247b9315f8)
+*The infamous multi permission launcher for location permissions*
 
 [![Vid 2](./docs/App_Permission_Screen_recording_20241210_091435.gif)](https://github.com/user-attachments/assets/76686e5f-c64e-4a20-addb-6222e177ad92)
 
+*A very androidish way to give user control. Even in this regime the demo gives user full privacy control.*
 
 
 
 
 
 
-The bigger idea is to build a foundational document rethinking the problem
-
-
- and core algorithms
-to enable location products. FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
+The bigger idea is to build a foundational document rethinking the problem and core algorithms to enable location products. FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
 
 # What PrivyLoci is not?
 - In this demo I am not solving for accurate private GPS positioning. But this is entirely possible and pivotal to gaining complete privacy[19]. At the moment I do use Google's Fused Location Provider[6] for the demo. 
