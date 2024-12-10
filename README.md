@@ -16,11 +16,22 @@ To think that the idea is, “well, isn't this just a technical issue like diffe
 
 # Is it meant to be an App? How can I use it?
 Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service an Infrastructure as a Service(IaaS) on device to enable users and and 3p-apps alike. The demo is for giving you a feel for what the experience is like. 
-[![No_Permission_screen_screenshot_20241210_093519](https://github.com/user-attachments/assets/b50a3268-5a33-4426-b569-809d8678a26b)](https://github.com/user-attachments/assets/c504f7a3-4823-4504-922d-cafb24c46aaa)
-*The very androidish way to do permissions. Even in this structure one can build more privacy aware services.*
 
 
-The bigger idea is to build a foundational document rethinking the problem and core algorithms
+[![Vid 1](./docs/App_MultiPermission_Launcher_Screen_recording_20241210_091435.gif](https://github.com/user-attachments/assets/19fe766d-84b7-48c7-abd5-06247b9315f8)
+
+[![Vid 2](./docs/App_Permission_Screen_recording_20241210_091435.gif)](https://github.com/user-attachments/assets/76686e5f-c64e-4a20-addb-6222e177ad92)
+
+
+
+
+
+
+
+The bigger idea is to build a foundational document rethinking the problem
+
+
+ and core algorithms
 to enable location products. FOSS, Privacy Minded Institutional and Hackivist support is 100% welcome. 
 
 # What PrivyLoci is not?
