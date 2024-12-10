@@ -124,14 +124,14 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
     rememberSaveable { mutableStateOf<ForegroundPermissionRationaleState?>(null) }
 
     // TODO: Encapsulate the permision code in its own class.
-    // TODO: Ask for background permissions if I don't take the foreground permissions route.
+    // N2S: Ask for background permissions if user wants to not take the foreground permissions route.
     val foregroundLocationPermissionState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.POST_NOTIFICATIONS // Add this permission
         )
-    ) { it -> Logger.v(TAG, it.entries.joinToString(separator = "\n")) }
+    ) { Logger.v(TAG, it.entries.joinToString(separator = "\n")) }
 
     val userVisitedPermissionLauncherPreference =
         viewModel.userVisitedPermissionLauncher.collectAsState().value.getOrDefault(false)
@@ -140,6 +140,12 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
         viewModel.userPausedLocationCollection.collectAsState().value.getOrDefault(
             false
     )
+    // location permission revocation is superflous to previous user setting to stop collection.
+    if (!foregroundLocationPermissionState.allPermissionsGranted) {
+        viewModel.setUserPausedLocationCollection(false)
+        viewModel.setFGPersistentNotificationDismissed(false)
+    }
+
     val userDismissedFGNotification = remember { mutableStateOf<Boolean>(false) }
 
     val coroutineScope = rememberCoroutineScope()
@@ -150,6 +156,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
             }
         }
     }
+
 
     Logger.v(
         TAG,
@@ -292,7 +299,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
                 fgPermissionRationaleState =
                     ForegroundPermissionRationaleState(
                         RationaleState.RESUME_LOCATION_COLLECTION,
-                        rationaleText = "You can resume App wide location collection by pressing proceed.",
+                        rationaleText = if (userDismissedFGNotification.value) "You dismissed app's location collection notification, resume it by pressing proceed" else "You can resume App wide location collection by pressing proceed.",
                         proceedButtonText = "Resume",
                         dismissButtonText = "Dismiss"
                     )
@@ -349,6 +356,7 @@ fun LaunchPrivyForeGroundService(
     )
     // N2S: If for some reason the service is not launched by LaunchedEffect, if say the user swipes the app up too "quickly".
     LaunchedEffect(userPausedLocationCollection, isRunning) {
+
         if (!userPausedLocationCollection) {
             if (!isRunning) {
                 Logger.v(TAG, "Attempting to start the FG service.")

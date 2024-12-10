@@ -52,19 +52,15 @@ class PrivyForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Logger.d(this::class.java.simpleName, "Privy Loci Foreground Service created")
+        Logger.d(this::class.java.simpleName, "In onCreate Privy Loci Foreground Service")
 
+        // Start the foreground service with notification
+        startForegroundServiceWithNotification()
         // Initialize SensorManager
         sensorManager.initialize(this)
         // Initialize SubscriptionManager lazily
         CoroutineScope(Dispatchers.IO).launch {
             subscriptionManager.initialize(this@PrivyForegroundService)
-        }
-
-        // Start the foreground service with notification
-        startForegroundServiceWithNotification()
-
-        CoroutineScope(Dispatchers.IO).launch {
             repository.setServiceRunning(true)
         }
     }
@@ -147,6 +143,7 @@ class PrivyForegroundService : Service() {
                     e
                 )
             }
+            throw e
         }
     }
 
