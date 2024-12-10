@@ -300,7 +300,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
         }
     }
 
-    /*End logic to deal with removed FG notification */
+    /*End logic to deal with Permissions */
 
     // TODO: Consider using a viewmodel to get the data from the daos. That will keep them from not being re-initialized .
     val database = MainApplication.database
