@@ -125,6 +125,16 @@ But instead of enumerating extensive privacy guarantees and comparing them to Pr
 - Private Location by Soremba from <a href="https://thenounproject.com/browse/icons/term/private-location/" target="_blank" title="Private Location Icons">Noun Project</a> (CC BY 3.0)
 - no location by VectorsLab from <a href="https://thenounproject.com/browse/icons/term/no-location/" target="_blank" title="no location Icons">Noun Project</a> (CC BY 3.0)
 - Location by VectorsLab from <a href="https://thenounproject.com/browse/icons/term/location/" target="_blank" title="Location Icons">Noun Project</a> (CC BY 3.0)
+- Bluetooth Headphones by Universal Icons
+  from <a href="https://thenounproject.com/browse/icons/term/bluetooth-headphones/" target="_blank" title="Bluetooth Headphones Icons">
+  Noun Project</a> (CC BY 3.0)
+- bluetooth off by Nara Vieira da Silva
+  from <a href="https://thenounproject.com/browse/icons/term/bluetooth-off/" target="_blank" title="bluetooth off Icons">
+  Noun Project</a> (CC BY 3.0)
+- bluetooth off by Nara Vieira da Silva
+  from <a href="https://thenounproject.com/browse/icons/term/bluetooth-off/" target="_blank" title="bluetooth off Icons">
+  Noun Project</a> (CC BY 3.0)
+
  
 # References
 [1] Though, this means that we can't use Google's fused provider either for more accurate location, but there is a longer term plan for this.

@@ -30,6 +30,9 @@ class UserPreferences @Inject constructor(
 
     val userVisitedPermissionLauncher = dataStore.readAsResult(visitedPermissionLauncher, false)
 
+    val userVisitedBlePermissionLauncher =
+        dataStore.readAsResult(visitedBlePermissionLauncher, false)
+
     companion object {
         fun <T> DataStore<Preferences>.readAsResult(
             key: Preferences.Key<T>,
@@ -73,8 +76,11 @@ class UserPreferences @Inject constructor(
             }
         }
 
+        // Do not change these names, they might cause composables already in production to break
         val visitedPermissionLauncher = booleanPreferencesKey("visited_permission_launcher")
         val pausedLocationCollectionKey = booleanPreferencesKey("paused_location_collection")
+        val visitedBlePermissionLauncher =
+            booleanPreferencesKey("visited_ble_permission_launcher")
 
     }
 
@@ -87,6 +93,13 @@ class UserPreferences @Inject constructor(
     suspend fun setUserPausedLocationCollection(paused: Boolean) {
         dataStore.editKey(
             pausedLocationCollectionKey, paused
+        )
+    }
+
+    // BT Related pregs
+    suspend fun setUserVisitedBlePermissionLauncher(visited: Boolean) {
+        dataStore.editKey(
+            visitedBlePermissionLauncher, visited
         )
     }
 

@@ -42,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -54,6 +55,7 @@ import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.SubscriptionType
 import me.itissid.privyloci.ui.HomeScreen
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.accompanist.permissions.rememberPermissionState
 
 import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
@@ -67,8 +69,10 @@ import me.itissid.privyloci.datamodels.toDomain
 import me.itissid.privyloci.service.startPrivyForegroundService
 import me.itissid.privyloci.service.stopPrivyForegroundService
 import me.itissid.privyloci.ui.AdaptiveIcon
+import me.itissid.privyloci.ui.BlePermissionHandler
 import me.itissid.privyloci.ui.LocationPermissionRationaleDialogue
 import me.itissid.privyloci.util.Logger
+import me.itissid.privyloci.viewmodels.BlePermissionViewModel
 import me.itissid.privyloci.viewmodels.ForegroundPermissionRationaleState
 import me.itissid.privyloci.viewmodels.MainViewModel
 import me.itissid.privyloci.viewmodels.RationaleState
@@ -120,13 +124,14 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreenWrapper(viewModel: MainViewModel) {
     val context = LocalContext.current as Activity
-    val lifecycleOwner = LocalLifecycleOwner.current
+
     // Variables for managing location and other sensor permissions.
     var fgPermissionRationaleState by
     rememberSaveable { mutableStateOf<ForegroundPermissionRationaleState?>(null) }
 
     // TODO: Encapsulate the permision code in its own class.
     // N2S: Ask for background permissions if user wants to not take the foreground permissions route.
+    rememberPermissionState(permission = Manifest.permission.ACCESS_BACKGROUND_LOCATION)
     val foregroundLocationPermissionState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -198,8 +203,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
                         try {
                             foregroundLocationPermissionState.launchMultiplePermissionRequest()
                             // TODO: At this point  should ALWAYS launch the permissions since the RationaleState is set to this only if shouldShowRationale is true.
-                            //  But testing is needed. Setting this user preference guards against trying to repeatedly launch the permission request, because in android
-                            // 14 it does nothing.
+                            //  But testing is needed. Setting this user preference guards against trying to repeatedly launch the permission request, because in android 14 it does nothing.
                             viewModel.setUserVisitedPermissionLauncherPreference(true) //
                         } finally {
                             fgPermissionRationaleState = null
@@ -216,6 +220,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
                     }
 
                     RationaleState.VISIT_SETTINGS -> {
+                        // Consider doing this in launched effects?
                         try {
                             val intent =
                                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -390,6 +395,18 @@ fun MainScreen(
     onLocationIconClick: () -> Unit
 ) {
     val navController = rememberNavController()
+    val bleViewModel: BlePermissionViewModel = hiltViewModel()
+    val blePermissionGranted = bleViewModel.blePermissionGranted.collectAsState().value
+
+    BlePermissionHandler(bleViewModel)
+
+    var adaptiveIconHandlers: (() -> Unit)? = null
+    if (!blePermissionGranted) {
+        adaptiveIconHandlers = {
+            bleViewModel.onBleIconClicked()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopBar(
@@ -418,7 +435,7 @@ fun MainScreen(
                 )
             }
             composable(NavItem.Places.route) {
-                PlacesAndAssetsScreen(places)
+                PlacesAndAssetsScreen(places, adaptiveIconHandlers)
             }
         }
     }

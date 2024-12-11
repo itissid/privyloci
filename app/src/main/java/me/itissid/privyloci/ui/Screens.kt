@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.Subscription
+import me.itissid.privyloci.viewmodels.BlePermissionEvent
 
 
 @Composable
@@ -78,13 +79,16 @@ fun HomeScreen(
 }
 
 @Composable
-fun PlacesAndAssetsScreen(places: List<PlaceTag>) {
+fun PlacesAndAssetsScreen(
+    places: List<PlaceTag>,
+    adaptiveIconOnClickHandlers: (() -> Unit)? = null
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp)
     ) {
         items(places) { place ->
-            PlaceCard(placeTag = place)
+            PlaceCard(placeTag = place, adaptiveIconOnClickHandlers)
         }
     }
 }

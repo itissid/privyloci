@@ -44,6 +44,7 @@ data class ForegroundPermissionRationaleState(
     val rationaleText: String = "",
     val proceedButtonText: String = "Proceed",
     val dismissButtonText: String = "Cancel"
+
 )
 
 
@@ -122,9 +123,6 @@ class MainViewModel @Inject constructor(
 
     fun setUserPausedLocationCollection(paused: Boolean) {
         viewModelScope.launch {
-            if (!paused) {
-                // Should we
-            }
             userPreferences.setUserPausedLocationCollection(paused)
         }
     }

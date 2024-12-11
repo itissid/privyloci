@@ -32,6 +32,7 @@ import me.itissid.privyloci.datamodels.PlaceTagType
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.displayName
 import me.itissid.privyloci.datamodels.tagString
+import me.itissid.privyloci.viewmodels.BlePermissionEvent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -94,7 +95,10 @@ fun AppCard(
 }
 
 @Composable
-fun PlaceCard(placeTag: PlaceTag) {
+fun PlaceCard(
+    placeTag: PlaceTag,
+    adaptiveIconOnClick: (() -> Unit)?
+) {
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
@@ -113,7 +117,16 @@ fun PlaceCard(placeTag: PlaceTag) {
                     modifier = Modifier.weight(1f)
 
                 )
-                // Asset Icon
+                //
+                // if ble permissions are not granted show the icon else nothing
+                if (adaptiveIconOnClick != null) { // only when permission is not granted
+                    IconButton(onClick = { adaptiveIconOnClick.invoke() }) {
+                        AdaptiveIconWrapper(
+                            permissionGranted = false,
+                            iconResource = IconResource.BLEIcon
+                        )
+                    }
+                }
                 if (placeTag.type == PlaceTagType.ASSET.BLEHeadphones || placeTag.type == PlaceTagType.ASSET.BLECar) {
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
@@ -165,10 +178,17 @@ fun SubscriptionCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Place Name (Replace with actual place name if available)
-            Text(
-                text = "${subscription.placeTagName}(id: ${subscription.placeTagId})",
-                style = MaterialTheme.typography.headlineSmall
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${subscription.placeTagName}(id: ${subscription.placeTagId})",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                if (subscription.isTypeLocation() && !locationPermissionGranted) {
+                    IconButton(onClick = onLocationIconClick) {
+                        AdaptiveIcon(locationPermissionGranted = false)
+                    }
+                }
+            }
             // Event Type
             Text(
                 text = subscription.eventType.displayName,
@@ -181,11 +201,7 @@ fun SubscriptionCard(
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 4.dp)
             )
-            if (subscription.isTypeLocation() && !locationPermissionGranted) {
-                IconButton(onClick = onLocationIconClick) {
-                    AdaptiveIcon(locationPermissionGranted = false)
-                }
-            }
+
         }
     }
 }

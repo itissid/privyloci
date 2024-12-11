@@ -49,3 +49,46 @@ fun AdaptiveIcon(locationPermissionGranted: Boolean) {
         modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
     )
 }
+
+sealed class IconResource(val notGranted: Int, val granted: Int) {
+    // TODO: Use me when calling from SubscriptionCard  for location usecase
+    data object LocationIcon : IconResource(R.drawable.ic_no_location_icon, R.drawable.ic_location)
+    data object BLEIcon :
+        IconResource(R.drawable.noun_bluetooth_off_482384, R.drawable.noun_bluetooth_482388)
+
+}
+
+@Composable
+fun AdaptiveIconWrapper(
+    permissionGranted: Boolean,
+    iconResource: IconResource
+) {
+    val tint = if (permissionGranted) {
+        if (isSystemInDarkTheme()) darkScheme.onSurface else lightScheme.onSurface
+    } else {
+        if (isSystemInDarkTheme()) darkScheme.error else lightScheme.error
+    }
+
+    val scale by if (!permissionGranted) {
+        val infiniteTransition = rememberInfiniteTransition(label = "Infinite Transition")
+        infiniteTransition.animateFloat(
+            initialValue = 0.8f,
+            targetValue = 1.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 700, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ), label = "animation"
+        )
+    } else {
+        // When condition is false, simply return a static scale of 1f
+        remember { mutableFloatStateOf(1f) }
+    }
+    Icon(
+        painter = if (permissionGranted) painterResource(id = iconResource.granted) else painterResource(
+            id = iconResource.notGranted
+        ),
+        contentDescription = "Custom Icon",
+        tint = tint,
+        modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
+    )
+}
