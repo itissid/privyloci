@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="NoActionBar" parent="@android:style/Theme.Holo.Light">
+    <style name="NoActionBar" parent="Theme.Material3.DynamicColors.Dark.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
     </style>

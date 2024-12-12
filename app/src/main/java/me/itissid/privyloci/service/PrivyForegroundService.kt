@@ -55,6 +55,7 @@ class PrivyForegroundService : Service() {
         Logger.d(this::class.java.simpleName, "In onCreate Privy Loci Foreground Service")
 
         // Start the foreground service with notification
+        // recheck permissions here
         startForegroundServiceWithNotification()
         // Initialize SensorManager
         sensorManager.initialize(this)
@@ -143,6 +144,8 @@ class PrivyForegroundService : Service() {
                     e
                 )
             }
+            // TODO: Sometimes what happens is that the system tries to restart the service when its closed(I think due to the STICKY option)
+            // When a user intentionally pauses the collection, perhapps it is better not to shutdown the service but instead just stop the sensor collection.
             throw e
         }
     }

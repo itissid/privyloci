@@ -5,25 +5,20 @@ import android.os.Build
 import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Typography
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import me.itissid.privyloci.R
 
 @Composable
 fun getColorFromXml(colorResId: Int): Color {
