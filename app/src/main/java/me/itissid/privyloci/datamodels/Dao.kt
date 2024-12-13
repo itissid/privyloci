@@ -25,6 +25,12 @@ interface SubscriptionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSubscriptions(subscriptions: List<Subscription>)
 
+    @Query("SELECT COUNT(*) FROM subscriptions")
+    suspend fun subscriptionExists(): Int
+
+    @Query("DELETE FROM subscriptions")
+    suspend fun deleteSubscriptions()
+
 }
 
 
@@ -35,4 +41,10 @@ interface PlaceTagDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaceTags(placeTags: List<PlaceTagEntity>)
+
+    @Query("SELECT count(*) FROM place_tags")
+    suspend fun placeTagExists(): Int
+
+    @Query("DELETE FROM place_tags")
+    suspend fun deletePlaces()
 }

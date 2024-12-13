@@ -62,31 +62,81 @@ class MainApplication : Application() {
             super.onOpen(db)
             Logger.d(this::class.toString(), "Database opened")
             CoroutineScope(Dispatchers.IO).launch {
-                Logger.d(this::class.toString(), "Overwriting database")
                 recreateDatabase()
             }
         }
 
         private suspend fun recreateDatabase() {
-            val placeTagDao = database.placeTagDao()
-            val subscriptionDao = database.subscriptionDao()
 
             // Get data from DataProvider
-            val (placesList, assetsList, subscriptionsList) = DataProvider.getData()
-            val places = placesList + assetsList
-            Log.w("MainApplication", "Populating database with ${places.size} places")
-            Log.w(
-                "MainApplication",
-                "Populating database with ${subscriptionsList.size} subscriptions"
-            )
-            // Testing code for subscriptions.
-            assert(places.isNotEmpty())
-            subscriptionsList.forEach {
-                subscriptionDao.deleteSubscription(it)
+            if (BuildConfig.LOAD_MOCK_DATA) {
+                val placeTagDao = database.placeTagDao()
+                val subscriptionDao = database.subscriptionDao()
+                if (BuildConfig.WIPE_DATA) {
+                    Logger.d(
+                        "MainApplication",
+                        "Wiping data from the database"
+                    )
+                    subscriptionDao.deleteSubscriptions()
+                    placeTagDao.deletePlaces()
+                    return
+                }
+
+                val (placesList, assetsList, subscriptionsList) = DataProvider.getData()
+                val places = placesList + assetsList
+                Log.w("MainApplication", "Got ${places.size} places in the mock data ")
+                Log.w(
+                    "MainApplication",
+                    "Got {subscriptionsList.size} subscriptions in the mock data"
+                )
+                // Testing code for subscriptions.
+                if (BuildConfig.ADD_IF_EMPTY) {
+                    assert(places.isNotEmpty())
+                    if (placeTagDao.placeTagExists() == 0) {
+                        Logger.d(
+                            "MainApplication",
+                            "Adding places ADD_IF_EMPTY=true and empty database"
+                        )
+                        placeTagDao.insertPlaceTags(places.map { it.toEntity() })
+                    } else {
+                        Logger.d(
+                            "MainApplication",
+                            "Places already exist in the database"
+                        )
+                    }
+
+                    if (subscriptionDao.subscriptionExists() == 0) {
+                        Logger.d(
+                            "MainApplication",
+                            "Adding subscriptions ADD_IF_EMPTY=true and empty database"
+                        )
+                        subscriptionDao.insertSubscriptions(subscriptionsList)
+                    } else {
+                        Logger.d(
+                            "MainApplication",
+                            "Subscriptions already exist in the database"
+                        )
+                    }
+                } else if (BuildConfig.REPLACE_ALWAYS) {
+                    Logger.i(
+                        "MainApplication",
+                        "Replacing subscription and places REPLACE_ALWAYS=true"
+                    )
+
+                    subscriptionsList.forEach {
+                        subscriptionDao.deleteSubscription(it)
+                    }
+                    subscriptionDao.insertSubscriptions(subscriptionsList)
+
+                    placeTagDao.insertPlaceTags(places.map { it.toEntity() })
+
+                } else {
+                    Logger.d("MainApplication", "No  changes to the debug database")
+                }
+                // Insert data into the database
+            } else {
+                Logger.i("MainApplication", "Not loading mock data")
             }
-            // Insert data into the database
-            placeTagDao.insertPlaceTags(places.map { it.toEntity() })
-            subscriptionDao.insertSubscriptions(subscriptionsList)
         }
     }
 

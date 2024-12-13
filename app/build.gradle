@@ -21,8 +21,20 @@ android {
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+            buildConfigField "boolean", "ADD_IF_EMPTY", "true"
+            buildConfigField "boolean", "REPLACE_ALWAYS", "false"
+            buildConfigField "boolean", "WIPE_DATA", "false"
+            buildConfigField "boolean", "LOAD_MOCK_DATA", "true"
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
         release {
             minifyEnabled false
+            buildConfigField "boolean", "ADD_IF_EMPTY", "false"
+            buildConfigField "boolean", "REPLACE_ALWAYS", "false"
+            buildConfigField "boolean", "WIPE_DATA", "false"
+            buildConfigField "boolean", "LOAD_MOCK_DATA", "false"
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
