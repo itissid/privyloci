@@ -47,7 +47,6 @@ fun LocationPermissionRationaleDialogue(
     )
 }
 
-
 @Composable
 fun PermissionDeniedScreen(onOpenSettings: () -> Unit) {
     Surface {

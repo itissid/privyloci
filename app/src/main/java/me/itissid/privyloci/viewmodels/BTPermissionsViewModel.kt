@@ -60,6 +60,8 @@ class BlePermissionViewModel @Inject constructor(
     private val userVisitedBlePermissionLauncher = MutableStateFlow<Boolean>(false)
 
     init {
+        // You can't use the stateIn method of userVisitedBlePermissionLauncher because then it needs to be observed by a composable.
+        // Since we don't want to bother the user with setting/reading the preference we use collect.
         viewModelScope.launch {
             userPreferences.userVisitedBlePermissionLauncher.collect {
                 val visited = it.getOrDefault(false)
@@ -67,13 +69,6 @@ class BlePermissionViewModel @Inject constructor(
             }
         }
     }
-
-//    private val userVisitedBlePermissionLauncher: StateFlow<Result<Boolean>> =
-//        userPreferences.userVisitedBlePermissionLauncher.stateIn(
-//            scope = viewModelScope,
-//            started = SharingStarted.WhileSubscribed(),
-//            initialValue = Result.success(false)
-//        )
 
     // Flow or a boolean indicating if BLE permission is currently granted
     private val _blePermissionGranted: MutableStateFlow<Boolean> =
@@ -93,12 +88,11 @@ class BlePermissionViewModel @Inject constructor(
     }
 
     /**
-     * Called when the BLE icon is clicked. Decides what rationale or action to show.
-     *
-     * The composable only calls this method. This method checks current conditions:
-     * - Are permissions granted?
-     * - Should show rationale?
-     * - Has the user visited the launcher before?
+     * Called when the BLE icon is clicked. Decides what rationale or action to show by manipulating the state.
+     * The composable only calls this method. This method checks the following and indirectly triggers the following actions:
+     * - Are permissions granted?: Yes? Return
+     * - Should show rationale?: Yes? Show rationale, launch permissions request
+     * - Has the user visited the launcher before?: Yes? Show settings
      */
     fun onBleIconClicked() {
         val allGranted = blePermissionGranted.value
@@ -157,7 +151,7 @@ class BlePermissionViewModel @Inject constructor(
         }
     }
 
-    fun setUserVisitedBlePermissionLauncher(visited: Boolean) {
+    private fun setUserVisitedBlePermissionLauncher(visited: Boolean) {
         viewModelScope.launch {
             userPreferences.setUserVisitedBlePermissionLauncher(visited)
         }
@@ -178,24 +172,17 @@ class BlePermissionViewModel @Inject constructor(
                 clearBlePermissionRationale()
             }
         }
-        // TODO: Use below code in the listener to `events`
-
     }
 
     /**
-     * Called from onConfirm callback in Rationale to actually request BLE permissions
-     * Use Accompanist Permission method:
-     *
+     * Called from onConfirm callback in Rationale that sets the state for a request to the right BLE permissions
      */
     private fun launchBlePermissionRequest() {
         // This function might not be able to directly request permissions
         // since Accompanist permission requests typically happen inside a Composable.
-        // Instead, store a state that the UI observes, prompting it to call
+        // Instead we store a state that the UI observes, prompting it to call
         // permissionState.launchPermissionRequest() from a composable side-effect.
 
-        // For example, you could have a SharedFlow event that Composable listens to.
-        // Or simply rely on a callback. For now let's assume a SharedFlow event:
-        // E.g. _requestBlePermissionEvent.tryEmit(Unit)
         viewModelScope.launch {
             try {
                 _events.emit(BlePermissionEvent.RequestBlePermissions)
@@ -205,7 +192,4 @@ class BlePermissionViewModel @Inject constructor(
         }
     }
 
-    // Additional logic if you have multiple BLE permissions:
-    // For example, if you need both BLUETOOTH_SCAN and BLUETOOTH_CONNECT:
-    // Check all needed permissions and request them similarly.
 }

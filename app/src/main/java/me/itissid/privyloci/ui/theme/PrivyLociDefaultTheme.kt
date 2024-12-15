@@ -26,13 +26,6 @@ fun getColorFromXml(colorResId: Int): Color {
     return Color(ContextCompat.getColor(context, colorResId))
 }
 
-// Define your custom typography
-val CustomTypography = Typography(
-    displaySmall = TextStyle(fontWeight = FontWeight.W100, fontSize = 96.sp),
-    labelLarge = TextStyle(fontWeight = FontWeight.W600, fontSize = 14.sp),
-    bodyMedium = TextStyle(fontSize = 16.sp)
-
-)
 
 @Composable
 fun PrivyLociTheme(
@@ -62,6 +55,5 @@ fun PrivyLociTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         content = content,
-        typography = CustomTypography
     )
 }

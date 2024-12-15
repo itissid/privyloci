@@ -27,8 +27,9 @@ data class PlaceTagEntity(
 fun PlaceTagEntity.toDomain(): PlaceTag {
     val domainType = when (type) {
         "PLACE" -> PlaceTagType.PLACE
-        "ASSET_BLE_HEADPHONES" -> PlaceTagType.ASSET.BLEHeadphones
-        "ASSET_BLE_CAR" -> PlaceTagType.ASSET.BLECar
+        "ASSET_BLE_HEADPHONES" -> PlaceTagType.ASSET.BTHeadphones
+        "ASSET_BLE_CAR" -> PlaceTagType.ASSET.BTCar
+        "ASSET_BLE_GENERIC" -> PlaceTagType.ASSET.BTGeneric
         else -> throw IllegalArgumentException("Unknown type: $type")
     }
 
@@ -43,22 +44,14 @@ fun PlaceTagEntity.toDomain(): PlaceTag {
 }
 
 sealed class PlaceTagType {
-    object PLACE : PlaceTagType()
+    data object PLACE : PlaceTagType()
 
     // Group all asset-related types under ASSET.
     sealed class ASSET : PlaceTagType() {
-        object BLEHeadphones : ASSET()
-        object BLECar : ASSET()
+        data object BTHeadphones : ASSET()
+        data object BTCar : ASSET()
+        data object BTGeneric : ASSET()
         // Future devices as we support them
-    }
-}
-
-fun String.toPlaceTagType(): PlaceTagType {
-    return when (this) {
-        "PLACE" -> PlaceTagType.PLACE
-        "ASSET_BLE_HEADPHONES" -> PlaceTagType.ASSET.BLEHeadphones
-        "ASSET_BLE_CAR" -> PlaceTagType.ASSET.BLECar
-        else -> throw IllegalArgumentException("Unknown type: $this")
     }
 }
 
@@ -77,19 +70,21 @@ data class PlaceTag(
             mutableMapOf()
         }
     }
+    fun isTypeBLE(): Boolean =
+        this.type == PlaceTagType.ASSET.BTHeadphones || this.type == PlaceTagType.ASSET.BTCar
 
     // Retrieve the selected BLE device address if this PlaceTag is BLEHeadphones.
     fun getSelectedDeviceAddress(): String? {
         return when (type) {
             PlaceTagType.PLACE -> null
-            is PlaceTagType.ASSET.BLECar, PlaceTagType.ASSET.BLEHeadphones -> {
+            is PlaceTagType.ASSET.BTCar, PlaceTagType.ASSET.BTHeadphones, PlaceTagType.ASSET.BTGeneric -> {
                 parseMetadata()["selected_ble_device"] as? String
             }
         }
     }
 
     // Return a copy of this PlaceTag with the updated device address in metadata.
-    // This is only meaningful if the type is BLEHeadphones; otherwise, we do nothing special.
+    // This is only meaningful if the type is BLE/BT; otherwise, we do nothing special.
     fun withSelectedDeviceAddress(address: String?): PlaceTag {
         val map = parseMetadata()
         if (address == null) {
@@ -105,16 +100,18 @@ data class PlaceTag(
 fun PlaceTagType.tagString(): String {
     return when (this) {
         is PlaceTagType.PLACE -> "Place"
-        is PlaceTagType.ASSET.BLEHeadphones -> "Headphones"
-        is PlaceTagType.ASSET.BLECar -> "Car"
+        is PlaceTagType.ASSET.BTHeadphones -> "Headphones"
+        is PlaceTagType.ASSET.BTCar -> "Car"
+        is PlaceTagType.ASSET.BTGeneric -> "Generic"
     }
 }
 
 fun PlaceTag.toEntity(): PlaceTagEntity {
     val dbType = when (type) {
         PlaceTagType.PLACE -> "PLACE"
-        is PlaceTagType.ASSET.BLEHeadphones -> "ASSET_BLE_HEADPHONES"
-        is PlaceTagType.ASSET.BLECar -> "ASSET_BLE_CAR"
+        is PlaceTagType.ASSET.BTHeadphones -> "ASSET_BLE_HEADPHONES"
+        is PlaceTagType.ASSET.BTCar -> "ASSET_BLE_CAR"
+        is PlaceTagType.ASSET.BTGeneric -> "ASSET_BLE_GENERIC"
     }
 
     return PlaceTagEntity(

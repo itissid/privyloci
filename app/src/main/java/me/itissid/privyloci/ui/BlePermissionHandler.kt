@@ -20,6 +20,11 @@ import me.itissid.privyloci.util.Logger
 import me.itissid.privyloci.viewmodels.BlePermissionEvent
 import me.itissid.privyloci.viewmodels.BlePermissionViewModel
 
+/**
+ *  Ideally we would only need the view model and the UI.
+ *  But this is needed for being able to use the Composable rememberMultiplePermissionsState which I can't use
+ *  in a non-composable scope of the view model.
+ * */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun BlePermissionHandler(bleViewModel: BlePermissionViewModel) {
@@ -31,13 +36,6 @@ fun BlePermissionHandler(bleViewModel: BlePermissionViewModel) {
                 Manifest.permission.BLUETOOTH
             )
         )
-
-    // Observe if we need to launch a permission request:
-    // For example, if we had a flow in the ViewModel:
-    // LaunchedEffect(Unit) {
-    //   bleViewModel.requestBlePermissionEvent.collect { bleState.launchPermissionRequest() }
-    // }
-
     val rationaleState by bleViewModel.blePermissionRationaleState.collectAsState()
 
     rationaleState?.let { rationale ->
