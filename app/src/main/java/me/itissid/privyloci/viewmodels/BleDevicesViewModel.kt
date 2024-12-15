@@ -36,6 +36,7 @@ import javax.inject.Inject
 @HiltViewModel
 class BleDevicesViewModel @Inject constructor(
     private val application: Application,
+    private val placeTagDao: PlaceTagDao,
     // Possibly inject BluetoothManager or handle via system service
 ) : AndroidViewModel(application) {
     private val bluetoothAdapter: BluetoothAdapter by lazy {
@@ -100,7 +101,7 @@ class BleDevicesViewModel @Inject constructor(
     @SuppressLint("MissingPermission")
     private fun BluetoothDevice.pprint(): String {
         return """
-        Name: ${this.name}
+        Name: ${this.name} 
         Address: ${this.address}
         Type: ${this.whichType()}
         Alias: ${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) this.alias else "N/A"}
@@ -178,10 +179,10 @@ class BleDevicesViewModel @Inject constructor(
     }
 
     // Potentially expose a method to update device selection in DB
-    fun selectDeviceForPlaceTag(placeTag: PlaceTag, deviceAddress: String, dao: PlaceTagDao) {
+    fun selectDeviceForPlaceTag(placeTag: PlaceTag, deviceAddress: String) {
         viewModelScope.launch {
             val updated = placeTag.withSelectedDeviceAddress(deviceAddress)
-            dao.insertPlaceTags(listOf(updated.toEntity())) // Or a dedicated update method
+            placeTagDao.insertPlaceTags(listOf(updated.toEntity())) // Or a dedicated update method
         }
     }
 
@@ -190,5 +191,4 @@ class BleDevicesViewModel @Inject constructor(
         clearBondedDevices()
         application.unregisterReceiver(btStateReceiver)
     }
-
 }

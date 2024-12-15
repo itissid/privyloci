@@ -43,9 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.flowWithLifecycle
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 
@@ -64,6 +61,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.data.DataProvider.processAppContainers
+import me.itissid.privyloci.datamodels.PlaceTagDao
 import me.itissid.privyloci.datamodels.toDomain
 //import me.itissid.privyloci.service.FG_NOTIFICATION_DISMISSED
 import me.itissid.privyloci.service.startPrivyForegroundService
@@ -72,6 +70,7 @@ import me.itissid.privyloci.ui.AdaptiveIcon
 import me.itissid.privyloci.ui.BlePermissionHandler
 import me.itissid.privyloci.ui.LocationPermissionRationaleDialogue
 import me.itissid.privyloci.util.Logger
+import me.itissid.privyloci.viewmodels.BleDevicesViewModel
 import me.itissid.privyloci.viewmodels.BlePermissionViewModel
 import me.itissid.privyloci.viewmodels.ForegroundPermissionRationaleState
 import me.itissid.privyloci.viewmodels.MainViewModel
@@ -335,7 +334,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
         userSubscriptions,
         places,
         (foregroundLocationPermissionState.allPermissionsGranted && !userPausedLocationCollection),
-        onLocationIconClick
+        onLocationIconClick,
     )
 
     if (foregroundLocationPermissionState.allPermissionsGranted) {
@@ -363,6 +362,8 @@ fun LaunchPrivyForeGroundService(
         "User dismissed FG notification: $userDismissedForegroundNotification, User paused location collection: $userPausedLocationCollection, isRunning: $isRunning"
     )
     // N2S: If for some reason the service is not launched by LaunchedEffect, if say the user swipes the app up too "quickly".
+    // TODO: Sometimes what happens is that the system tries to restart the service when its closed(I think due to the STICKY option)
+    // When a user intentionally pauses the collection, perhaps it is better not to shutdown the service but instead just stop the sensor collection for it.
     LaunchedEffect(userPausedLocationCollection, isRunning) {
 
         if (!userPausedLocationCollection) {
@@ -377,7 +378,7 @@ fun LaunchPrivyForeGroundService(
             }
         } else { //
             if (isRunning) {
-                Logger.v(TAG, "Attempting to stopping the FG service")
+                Logger.v(TAG, "Attempting to stop the FG service")
                 stopPrivyForegroundService(context)
             } else {
                 Logger.w(TAG, "User Paused Location Collection but FG service is not detected")
@@ -392,18 +393,22 @@ fun MainScreen(
     userSubscriptions: List<Subscription>,
     places: List<PlaceTag>,
     locationPermissionGranted: Boolean,
-    onLocationIconClick: () -> Unit
+    onLocationIconClick: () -> Unit,
 ) {
     val navController = rememberNavController()
-    val bleViewModel: BlePermissionViewModel = hiltViewModel()
-    val blePermissionGranted = bleViewModel.blePermissionGranted.collectAsState().value
-
-    BlePermissionHandler(bleViewModel)
+    /*N2S: BT permission stuff done here. Don't just yet push this down into the PlacesAndAssetsScreen composable since
+    * Homescreen will also need to use this in the future.
+    * TODO: Remove above note when HomeScreen uses BT Permission granted
+    * */
+    val blePermissionViewModel: BlePermissionViewModel = hiltViewModel()
+    val blePermissionGranted = blePermissionViewModel.blePermissionGranted.collectAsState().value
+    val bleDevicesViewModel: BleDevicesViewModel = hiltViewModel()
+    BlePermissionHandler(blePermissionViewModel)
 
     var adaptiveIconHandlers: (() -> Unit)? = null
     if (!blePermissionGranted) {
         adaptiveIconHandlers = {
-            bleViewModel.onBleIconClicked()
+            blePermissionViewModel.onBleIconClicked()
         }
     }
 
@@ -435,7 +440,11 @@ fun MainScreen(
                 )
             }
             composable(NavItem.Places.route) {
-                PlacesAndAssetsScreen(places, adaptiveIconHandlers)
+                PlacesAndAssetsScreen(
+                    places,
+                    adaptiveIconHandlers,
+                    bleDevicesViewModel,
+                )
             }
         }
     }

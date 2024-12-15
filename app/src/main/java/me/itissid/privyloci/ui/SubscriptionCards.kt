@@ -12,27 +12,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import me.itissid.privyloci.datamodels.AppContainer
-import me.itissid.privyloci.datamodels.PlaceTag
-import me.itissid.privyloci.datamodels.PlaceTagType
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.displayName
-import me.itissid.privyloci.datamodels.tagString
-import me.itissid.privyloci.viewmodels.BlePermissionEvent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -90,74 +80,6 @@ fun AppCard(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun PlaceCard(
-    placeTag: PlaceTag,
-    adaptiveIconOnClick: (() -> Unit)?
-) {
-    var showMenu by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Place Name
-                Text(
-                    text = placeTag.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.weight(1f)
-
-                )
-                //
-                // if ble permissions are not granted show the icon else nothing
-                if (adaptiveIconOnClick != null) { // only when permission is not granted
-                    IconButton(onClick = { adaptiveIconOnClick.invoke() }) {
-                        AdaptiveIconWrapper(
-                            permissionGranted = false,
-                            iconResource = IconResource.BLEIcon
-                        )
-                    }
-                }
-                if (placeTag.type == PlaceTagType.ASSET.BLEHeadphones || placeTag.type == PlaceTagType.ASSET.BLECar) {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Options"
-                        )
-                    }
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        val deviceAddress = placeTag.getSelectedDeviceAddress()
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = "Selected Device: ${deviceAddress ?: "None"}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            },
-                            onClick = {
-                                //TODO: Open a dialog to select a device
-                                showMenu = false
-                            }
-                        )
-                    }
-
-                }
-            }
-            // Place Type
-            Text(
-                text = placeTag.type.tagString(),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 4.dp)
-            )
         }
     }
 }
