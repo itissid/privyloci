@@ -1,6 +1,7 @@
 package me.itissid.privyloci.ui
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,7 @@ fun PlaceCard(
     placeTag: PlaceTag,
     noPermissionOnClick: (() -> Unit)?, // null means ble permissions are not granted
     btDevices: List<InternalBtDevice>?,
+    btDevicesRescanHandler: () -> Unit,
     bluetoothNotEnabledHandler: (() -> Unit)?, // If null means ble was not enabled
     onDeviceSelectedForPlaceTag: PlaceTag.(String) -> Unit
 ) {
@@ -74,15 +76,15 @@ fun PlaceCard(
                     modifier = Modifier.weight(1f)
 
                 )
-                // if ble permissions are not granted show the icon else nothing
-                if (noPermissionOnClick != null && placeTag.isTypeBLE()) { // only when permission is not granted for BT devices
+
+                if (noPermissionOnClick != null && placeTag.isTypeBLE()) {// if ble permissions are not granted show the icon else nothing
                     IconButton(onClick = { noPermissionOnClick.invoke() }) {
                         AdaptiveIconWrapper(
                             permissionGranted = false,
                             iconResource = IconResource.BLEIcon
                         )
                     } // N2S: The triple dot could show the BLE turned on if its not.
-                } else if (placeTag.isTypeBLE()) {
+                } else if (placeTag.isTypeBLE()) {  // only when permission is not granted for BT devices
                     IconButton(onClick = { showDialog = !showDialog }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Options")
                     }
@@ -97,10 +99,15 @@ fun PlaceCard(
                             }
                         } else {
                             if (btDevices.isNullOrEmpty()) {
-                                Text(
-                                    text = "No bonded BLE devices found",
-                                    style = MaterialTheme.typography.bodyMedium
+                                ScanForBTDevices(
+                                    placeTag,
+                                    onDismiss = { showDialog = false },
+                                    onConfirm = btDevicesRescanHandler
                                 )
+//                                Text(
+//                                    text = "No bonded BLE devices found",
+//                                    style = MaterialTheme.typography.bodyMedium
+//                                )
                             } else {
                                 LazyRadioDialogue(
                                     "Select a device for ${placeTag.name}",
@@ -197,23 +204,66 @@ fun LazyRadioDialogue(
 }
 
 @Composable
+fun ScanForBTDevices(
+    assetName: PlaceTag,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialogWrapper(
+        title = "Refresh Bluetooth device list for ${assetName.name}",
+        body = "Press the button below to proceed with the refreshing of Bluetooth device list with a scan ",
+        onDismiss = { onDismiss() },
+        onConfirm = { onConfirm() },
+        onConfirmText = "RefreshScan",
+    )
+}
+
+@Composable
 fun BluetoothEnablePrompt(
     assetName: PlaceTag,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    AlertDialogWrapper(
+        title = "This feature requires you to turn  Bluetooth on",
+        body = "You may choose not to enable it, but then you can't use ${assetName.name} for any subscriptions",
+        onDismiss = onDismiss,
+        onConfirm = onConfirm,
+        onConfirmText = "Enable Bluetooth"
+    )
+}
+
+@Composable
+fun AlertDialogWrapper(
+    title: String,
+    body: String?,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    onConfirmText: String
+) {
     AlertDialog(
         title = {
             Text(
-                "This feature requires you to turn  Bluetooth on",
+                title,
                 style = MaterialTheme.typography.headlineSmall,
             )
         },
         text = {
-            Text(
-                "You may choose not to enable it, but then you can't use ${assetName.name} for any subscriptions",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            if (body != null) {
+                Text(
+                    body,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { onConfirm() },
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors()
+            ) {
+                Text("Cancel")
+            }
         },
         confirmButton = {
             TextButton(
@@ -221,13 +271,12 @@ fun BluetoothEnablePrompt(
                 shape = MaterialTheme.shapes.medium,
                 colors = ButtonDefaults.buttonColors()
             ) {
-                Text("Enable Bluetooth")
+                Text(onConfirmText)
             }
         },
-        onDismissRequest = { onDismiss },
+        onDismissRequest = { onDismiss() },
     )
 }
-
 @Preview(
     name = "Night mode",
     showBackground = true,

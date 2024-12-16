@@ -24,7 +24,6 @@ import androidx.core.content.ContextCompat
 import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.InternalBtDevice
 import me.itissid.privyloci.datamodels.PlaceTag
-import me.itissid.privyloci.datamodels.PlaceTagDao
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.util.Logger
 import me.itissid.privyloci.viewmodels.BleDevicesViewModel
@@ -91,17 +90,20 @@ fun HomeScreen(
 @Composable
 fun PlacesAndAssetsScreen(
     places: List<PlaceTag>,
-    adaptiveIconOnClickHandlers: (() -> Unit)? = null,
+    noPermissionUIHandler: (() -> Unit)? = null,
     bleViewModel: BleDevicesViewModel,
 ) {
     if (places.isEmpty()) {
-        // So much empty space
+        // So much empty!
         Spacer(modifier = Modifier.fillMaxSize())
         return
     }
     val context = LocalContext.current
     val bleDevices by bleViewModel.bleDevices.collectAsState()
     val isBluetoothEnabled by bleViewModel.isBluetoothEnabled.collectAsState()
+    val btDevicesRescanHandler = {
+        bleViewModel.loadBondedBleDevices()
+    }
     var bluetoothNotEnabledHandler: (() -> Unit)? = (
             when (isBluetoothEnabled) {
                 false -> ({
@@ -111,24 +113,15 @@ fun PlacesAndAssetsScreen(
 
                 true -> null
             })
-    LaunchedEffect(isBluetoothEnabled) {
-        if (isBluetoothEnabled) {
-            Logger.v(
-                "BleDevicesViewModel",
-                "Bluetooth is enabled. ${bleDevices.size} devices found."
-            )
-        } else {
-            Logger.v("BleDevicesViewModel", "Bluetooth is disabled.")
-        }
-    }
 
     val onDeviceSelected = { placeTag: PlaceTag, selectedAddress: String ->
         bleViewModel.selectDeviceForPlaceTag(placeTag, selectedAddress)
     }
     PlaceCards(
         places,
-        adaptiveIconOnClickHandlers,
+        noPermissionUIHandler,
         bleDevices,
+        btDevicesRescanHandler,
         bluetoothNotEnabledHandler,
         onDeviceSelected
     )
@@ -139,6 +132,7 @@ fun PlaceCards(
     places: List<PlaceTag>,
     noPermissionOnClickHandler: (() -> Unit)?,
     bleDevices: List<InternalBtDevice>?,
+    btDevicesRescanHandler: () -> Unit,
     bluetoothNotEnabledHandler: (() -> Unit)?,
     onDeviceSelectedForPlaceTag: (PlaceTag.(address: String) -> Unit)
 ) {
@@ -155,6 +149,7 @@ fun PlaceCards(
                 placeTag = placeTag,
                 noPermissionOnClickHandler,
                 bleDevices,
+                btDevicesRescanHandler = btDevicesRescanHandler,
                 bluetoothNotEnabledHandler = bluetoothNotEnabledHandler,
                 onDeviceSelectedForPlaceTag = onDeviceSelectedForPlaceTag
             )

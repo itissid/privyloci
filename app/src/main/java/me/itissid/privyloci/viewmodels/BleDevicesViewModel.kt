@@ -65,10 +65,13 @@ class BleDevicesViewModel @Inject constructor(
         application.registerReceiver(btStateReceiver, filter)
     }
 
-//    fun refreshBluetoothState() {
-//        Logger.v("BleDevicesViewModel", "Refreshing Bluetooth state enabled to: ${bluetoothAdapter.isEnabled}")
-//        _isBluetoothEnabled.value = bluetoothAdapter.isEnabled
-//    }
+    fun refreshBluetoothState() {
+        Logger.v(
+            "BleDevicesViewModel",
+            "Refreshing Bluetooth state enabled to: ${bluetoothAdapter.isEnabled}"
+        )
+        _isBluetoothEnabled.value = bluetoothAdapter.isEnabled
+    }
 
     private val _bleDevices = MutableStateFlow<List<InternalBtDevice>>(emptyList())
     val bleDevices: StateFlow<List<InternalBtDevice>> = _bleDevices

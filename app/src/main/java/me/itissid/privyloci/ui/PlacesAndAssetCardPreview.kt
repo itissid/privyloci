@@ -43,6 +43,7 @@ fun PlacesCardPreview() {
         PlaceCards(
             places = placesAndAssets,
             bleDevices = bleDevices,
+            btDevicesRescanHandler = {},
             noPermissionOnClickHandler = null,
             bluetoothNotEnabledHandler = null,
             onDeviceSelectedForPlaceTag = onDeviceSelected
