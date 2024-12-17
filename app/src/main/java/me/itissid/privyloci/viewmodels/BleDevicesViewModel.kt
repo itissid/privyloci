@@ -15,14 +15,20 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Build.VERSION.SDK_INT
+import android.os.Bundle
+import android.os.Parcelable
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.datamodels.InternalBtDevice
 import me.itissid.privyloci.datamodels.PlaceTag
@@ -37,6 +43,7 @@ import javax.inject.Inject
 class BleDevicesViewModel @Inject constructor(
     private val application: Application,
     private val placeTagDao: PlaceTagDao,
+    private val bleRepository: BleRepository,
     // Possibly inject BluetoothManager or handle via system service
 ) : AndroidViewModel(application) {
     private val bluetoothAdapter: BluetoothAdapter by lazy {
@@ -52,7 +59,7 @@ class BleDevicesViewModel @Inject constructor(
             if (action == BluetoothAdapter.ACTION_STATE_CHANGED) {
                 val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
                 _isBluetoothEnabled.value = state == BluetoothAdapter.STATE_ON
-                if(_isBluetoothEnabled.value){
+                if (_isBluetoothEnabled.value) {
                     loadBondedBleDevices()
                 } else {
                     clearBondedDevices()
@@ -74,9 +81,15 @@ class BleDevicesViewModel @Inject constructor(
     }
 
     private val _bleDevices = MutableStateFlow<List<InternalBtDevice>>(emptyList())
-    val bleDevices: StateFlow<List<InternalBtDevice>> = _bleDevices
 
-    @SuppressLint("MissingPermission")
+    val bleDevices = _bleDevices.combine(
+        bleRepository.bluetoothPermissionsGranted
+    ) { devices, granted -> if (granted) devices else null }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.Lazily,
+        initialValue = null
+    )
+
     private fun BluetoothDevice.whichType(): String {
         return when (type) {
             BluetoothDevice.DEVICE_TYPE_CLASSIC -> "Classic"
@@ -102,7 +115,7 @@ class BleDevicesViewModel @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    private fun BluetoothDevice.pprint(): String {
+    private fun BluetoothDevice.strPprint(): String {
         return """
         Name: ${this.name} 
         Address: ${this.address}
@@ -139,12 +152,12 @@ class BleDevicesViewModel @Inject constructor(
         } else {
             Logger.e(
                 "BleDevicesViewModel",
-                "Bluetooth permissions not granted. This should not have happened"
+                "Bluetooth permissions not granted! This method should not be called before you do that"
             )
         }
     }
-    
-    fun clearBondedDevices() {
+
+    private fun clearBondedDevices() {
         Logger.v("BleDevicesViewModel", "Clearing bonded devices")
         _bleDevices.value = emptyList()
     }

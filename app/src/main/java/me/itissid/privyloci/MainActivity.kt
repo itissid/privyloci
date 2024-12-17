@@ -61,7 +61,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.data.DataProvider.processAppContainers
-import me.itissid.privyloci.datamodels.PlaceTagDao
 import me.itissid.privyloci.datamodels.toDomain
 //import me.itissid.privyloci.service.FG_NOTIFICATION_DISMISSED
 import me.itissid.privyloci.service.startPrivyForegroundService
@@ -405,9 +404,8 @@ fun MainScreen(
     val bleDevicesViewModel: BleDevicesViewModel = hiltViewModel()
     BlePermissionHandler(blePermissionViewModel)
 
-    var adaptiveIconHandlers: (() -> Unit)? = null
-    if (!blePermissionGranted) {
-        adaptiveIconHandlers = {
+    var adaptiveIconHandlers = {
+        if (!blePermissionGranted) {
             blePermissionViewModel.onBleIconClicked()
         }
     }
@@ -442,6 +440,7 @@ fun MainScreen(
             composable(NavItem.Places.route) {
                 PlacesAndAssetsScreen(
                     places,
+                    blePermissionGranted,
                     adaptiveIconHandlers,
                     bleDevicesViewModel,
                 )

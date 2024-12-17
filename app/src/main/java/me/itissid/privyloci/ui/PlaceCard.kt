@@ -1,7 +1,6 @@
 package me.itissid.privyloci.ui
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -51,11 +50,13 @@ import me.itissid.privyloci.ui.theme.PrivyLociTheme
 @Composable
 fun PlaceCard(
     placeTag: PlaceTag,
-    noPermissionOnClick: (() -> Unit)?, // null means ble permissions are not granted
+    blePermissionGranted: Boolean,
+    noPermissionOnClick: () -> Unit,
     btDevices: List<InternalBtDevice>?,
+    bluetoothEnabled: Boolean,
+    bluetoothNotEnabledHandler: () -> Unit,
+    onDeviceSelectedForPlaceTag: PlaceTag.(String) -> Unit,
     btDevicesRescanHandler: () -> Unit,
-    bluetoothNotEnabledHandler: (() -> Unit)?, // If null means ble was not enabled
-    onDeviceSelectedForPlaceTag: PlaceTag.(String) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var selectedDevice by remember { mutableStateOf<InternalBtDevice?>(null) }
@@ -76,20 +77,20 @@ fun PlaceCard(
                     modifier = Modifier.weight(1f)
 
                 )
-
-                if (noPermissionOnClick != null && placeTag.isTypeBLE()) {// if ble permissions are not granted show the icon else nothing
+                if (placeTag.isTypeBLE()) {
+                    if (!blePermissionGranted) {// if ble permissions are not granted show the icon else nothing
                     IconButton(onClick = { noPermissionOnClick.invoke() }) {
                         AdaptiveIconWrapper(
                             permissionGranted = false,
                             iconResource = IconResource.BLEIcon
                         )
                     } // N2S: The triple dot could show the BLE turned on if its not.
-                } else if (placeTag.isTypeBLE()) {  // only when permission is not granted for BT devices
+                    } else {  // only when permission is not granted for BT devices
                     IconButton(onClick = { showDialog = !showDialog }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Options")
                     }
                     if (showDialog) {
-                        if (bluetoothNotEnabledHandler != null) {
+                        if (!bluetoothEnabled) {
                             BluetoothEnablePrompt(
                                 assetName = placeTag,
                                 onDismiss = { showDialog = false }
@@ -104,10 +105,6 @@ fun PlaceCard(
                                     onDismiss = { showDialog = false },
                                     onConfirm = btDevicesRescanHandler
                                 )
-//                                Text(
-//                                    text = "No bonded BLE devices found",
-//                                    style = MaterialTheme.typography.bodyMedium
-//                                )
                             } else {
                                 LazyRadioDialogue(
                                     "Select a device for ${placeTag.name}",
@@ -126,7 +123,8 @@ fun PlaceCard(
                             }
                         }
                     }
-                } // else TODO: Logic for non BT Assets/Places.
+                    }
+                }// else TODO: Logic for non BT Assets/Places.
             }
             // Place Type
             Text(

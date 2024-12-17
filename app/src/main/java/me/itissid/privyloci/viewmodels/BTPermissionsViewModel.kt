@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import me.itissid.privyloci.kvrepository.UserPreferences
 import me.itissid.privyloci.util.Logger
 import javax.inject.Inject
+import javax.inject.Singleton
 
 enum class BleRationaleState {
     BLE_PERMISSION_RATIONALE_SHOULD_BE_SHOWN,
@@ -37,15 +38,27 @@ data class BlePermissionRationaleState(
 )
 
 sealed class BlePermissionEvent {
-    object OpenSettings : BlePermissionEvent()
-    object RequestBlePermissions : BlePermissionEvent()
+    data object OpenSettings : BlePermissionEvent()
+    data object RequestBlePermissions : BlePermissionEvent()
     // ... add more events as needed
+}
+
+// Should not be persistent like preferences
+@Singleton
+class BleRepository @Inject constructor() {
+    private val _bluetoothPermissionsGranted = MutableStateFlow(false)
+    val bluetoothPermissionsGranted: StateFlow<Boolean> = _bluetoothPermissionsGranted.asStateFlow()
+
+    fun updateBluetoothPermissions(granted: Boolean) {
+        _bluetoothPermissionsGranted.value = granted
+    }
 }
 
 @HiltViewModel
 class BlePermissionViewModel @Inject constructor(
     application: Application,
     private val userPreferences: UserPreferences,
+    private val bleRepository: BleRepository
 ) : AndroidViewModel(application) {
 
     // Tracks the current BLE rationale state
@@ -84,6 +97,7 @@ class BlePermissionViewModel @Inject constructor(
     val blePermissionGranted: StateFlow<Boolean> = _blePermissionGranted.asStateFlow()
 
     fun setBlePermissionGranted(granted: Boolean) {
+        bleRepository.updateBluetoothPermissions(granted)
         _blePermissionGranted.value = granted
     }
 

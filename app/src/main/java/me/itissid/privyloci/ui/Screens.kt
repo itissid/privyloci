@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -90,7 +89,8 @@ fun HomeScreen(
 @Composable
 fun PlacesAndAssetsScreen(
     places: List<PlaceTag>,
-    noPermissionUIHandler: (() -> Unit)? = null,
+    blePermissionGranted: Boolean,
+    noPermissionUIHandler: () -> Unit,
     bleViewModel: BleDevicesViewModel,
 ) {
     if (places.isEmpty()) {
@@ -101,17 +101,16 @@ fun PlacesAndAssetsScreen(
     val context = LocalContext.current
     val bleDevices by bleViewModel.bleDevices.collectAsState()
     val isBluetoothEnabled by bleViewModel.isBluetoothEnabled.collectAsState()
+    val connectedDevices by bleViewModel.connectedDevices.collectAsState()
     val btDevicesRescanHandler = {
         bleViewModel.loadBondedBleDevices()
     }
-    var bluetoothNotEnabledHandler: (() -> Unit)? = (
-            when (isBluetoothEnabled) {
-                false -> ({
+    var bluetoothNotEnabledHandler: () -> Unit = (
+            {
+                if (isBluetoothEnabled) {
                     val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                     ContextCompat.startActivity(context, intent, null)
-                })
-
-                true -> null
+                }
             })
 
     val onDeviceSelected = { placeTag: PlaceTag, selectedAddress: String ->
@@ -119,9 +118,11 @@ fun PlacesAndAssetsScreen(
     }
     PlaceCards(
         places,
+        blePermissionGranted,
         noPermissionUIHandler,
         bleDevices,
         btDevicesRescanHandler,
+        isBluetoothEnabled,
         bluetoothNotEnabledHandler,
         onDeviceSelected
     )
@@ -130,11 +131,13 @@ fun PlacesAndAssetsScreen(
 @Composable
 fun PlaceCards(
     places: List<PlaceTag>,
-    noPermissionOnClickHandler: (() -> Unit)?,
+    blePermissionGranted: Boolean,
+    noPermissionOnClickHandler: () -> Unit,
     bleDevices: List<InternalBtDevice>?,
     btDevicesRescanHandler: () -> Unit,
-    bluetoothNotEnabledHandler: (() -> Unit)?,
-    onDeviceSelectedForPlaceTag: (PlaceTag.(address: String) -> Unit)
+    bluetoothEnabled: Boolean,
+    bluetoothNotEnabledHandler: () -> Unit,
+    onDeviceSelectedForPlaceTag: PlaceTag.(address: String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -143,15 +146,22 @@ fun PlaceCards(
         items(places) { placeTag ->
             Logger.v(
                 "PlaceCards",
-                "bluetoothNotEnabledHandler is null? ${bluetoothNotEnabledHandler == null} "
+                "bluetoothEnabled? $bluetoothEnabled "
             )
+            // N2S: Instead consider just consider passing a BTDeviceState like object that  sets state
+            // do this action or that action. The different states are:
+            // 1. BT not enabled
+            // 2. BT enabled but no bonded user devices are not loaded.
+            // 3. BT enabled but no bonded user devices could be found.
             PlaceCard(
                 placeTag = placeTag,
+                blePermissionGranted,
                 noPermissionOnClickHandler,
                 bleDevices,
-                btDevicesRescanHandler = btDevicesRescanHandler,
+                bluetoothEnabled,
                 bluetoothNotEnabledHandler = bluetoothNotEnabledHandler,
-                onDeviceSelectedForPlaceTag = onDeviceSelectedForPlaceTag
+                onDeviceSelectedForPlaceTag = onDeviceSelectedForPlaceTag,
+                btDevicesRescanHandler = btDevicesRescanHandler
             )
         }
     }
