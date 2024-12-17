@@ -7,6 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import me.itissid.privyloci.datamodels.DeviceCapabilitiesDao
 import me.itissid.privyloci.datamodels.PlaceTagDao
 import me.itissid.privyloci.datamodels.SubscriptionDao
 import javax.inject.Singleton
@@ -35,6 +36,11 @@ object DBModule {
     @Provides
     fun providePlaceTagDao(appDatabase: AppDatabase): PlaceTagDao {
         return appDatabase.placeTagDao()
+    }
+
+    @Provides
+    fun provideDeviceCapabilityDao(appDatabase: AppDatabase): DeviceCapabilitiesDao {
+        return appDatabase.deviceCapabilityDao()
     }
 
 }

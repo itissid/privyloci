@@ -19,7 +19,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
 
     // Mock dependencies
     private lateinit var userPreferences: UserPreferences
-    private lateinit var bleRepository: BleRepository
+    private lateinit var BTPermissionRepository: BTPermissionRepository
     private lateinit var application: Application
 
     // System Under Test
@@ -32,20 +32,20 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
     fun setup() {
         // Initialize MockK annotations
         userPreferences = mockk()
-        bleRepository = mockk()
+        BTPermissionRepository = mockk()
         application = mockk()
 
         // Mock default flows
         every { userPreferences.userVisitedBlePermissionLauncher } returns MutableStateFlow(false)
-        every { bleRepository.bluetoothPermissionsGranted } returns blePermissionsFlow
-        coEvery { bleRepository.updateBluetoothPermissions(any()) } just Runs
+        every { BTPermissionRepository.bluetoothPermissionsGranted } returns blePermissionsFlow
+        coEvery { BTPermissionRepository.updateBluetoothPermissions(any()) } just Runs
 
 
         // Initialize ViewModel with mocked dependencies
         viewModel = BlePermissionViewModel(
             application = application,
             userPreferences = userPreferences,
-            bleRepository = bleRepository
+            btPermissionRepository = BTPermissionRepository
         )
     }
 
@@ -58,7 +58,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
         viewModel = BlePermissionViewModel(
             application = application,
             userPreferences = userPreferences,
-            bleRepository = bleRepository
+            btPermissionRepository = BTPermissionRepository
         )
         viewModel.setBlePermissionGranted(true)
 
@@ -91,7 +91,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
         viewModel = BlePermissionViewModel(
             application = application,
             userPreferences = userPreferences,
-            bleRepository = bleRepository
+            btPermissionRepository = BTPermissionRepository
         )
         // Arrage a bit more
         viewModel.setBlePermissionGranted(false)
@@ -119,7 +119,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
         viewModel = BlePermissionViewModel(
             application = application,
             userPreferences = userPreferences,
-            bleRepository = bleRepository
+            btPermissionRepository = BTPermissionRepository
         )
 
         // Ensure shouldShowRationale is false
@@ -158,7 +158,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
         viewModel = BlePermissionViewModel(
             application = application,
             userPreferences = userPreferences,
-            bleRepository = bleRepository
+            btPermissionRepository = BTPermissionRepository
         )
 
         // Ensure shouldShowRationale is false
@@ -195,7 +195,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
             viewModel = BlePermissionViewModel(
                 application = application,
                 userPreferences = userPreferences,
-                bleRepository = bleRepository
+                btPermissionRepository = BTPermissionRepository
             )
 
             // Set shouldShowRationale to true

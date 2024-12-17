@@ -48,3 +48,12 @@ interface PlaceTagDao {
     @Query("DELETE FROM place_tags")
     suspend fun deletePlaces()
 }
+
+@Dao
+interface DeviceCapabilitiesDao {
+    @Query("SELECT * FROM device_capabilities WHERE address = :address LIMIT 1")
+    suspend fun getCapability(address: String): DeviceCapabilityEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCapability(capability: DeviceCapabilityEntity)
+}

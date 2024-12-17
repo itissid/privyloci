@@ -25,7 +25,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -34,24 +33,44 @@ import me.itissid.privyloci.datamodels.InternalBtDevice
 import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.PlaceTagDao
 import me.itissid.privyloci.datamodels.toEntity
+import me.itissid.privyloci.util.BTDevicesRepository
 import me.itissid.privyloci.util.Logger
 import java.util.UUID
 import javax.inject.Inject
+
+
+inline fun <reified T : Parcelable> Intent.parcelable(key: String): T? = when {
+// See https://stackoverflow.com/a/73311814
+    SDK_INT >= 33 -> getParcelableExtra(key, T::class.java)
+    else -> @Suppress("DEPRECATION") getParcelableExtra(key) as? T
+}
+
+inline fun <reified T : Parcelable> Bundle.parcelable(key: String): T? = when {
+// See https://stackoverflow.com/a/73311814
+    SDK_INT >= 33 -> getParcelable(key, T::class.java)
+    else -> @Suppress("DEPRECATION") getParcelable(key)
+}
 
 
 @HiltViewModel
 class BleDevicesViewModel @Inject constructor(
     private val application: Application,
     private val placeTagDao: PlaceTagDao,
-    private val bleRepository: BleRepository,
+    private val btRepository: BTDevicesRepository,
+    btPermissionRepository: BTPermissionRepository,
     // Possibly inject BluetoothManager or handle via system service
 ) : AndroidViewModel(application) {
     private val bluetoothAdapter: BluetoothAdapter by lazy {
         val manager = application.getSystemService(BluetoothManager::class.java)
         manager.adapter
     }
+
     private var _isBluetoothEnabled = MutableStateFlow(bluetoothAdapter.isEnabled)
-    val isBluetoothEnabled: StateFlow<Boolean> = _isBluetoothEnabled
+    val isBluetoothEnabled: StateFlow<Boolean> = _isBluetoothEnabled.asStateFlow()
+
+
+    private var _connectedDevices = MutableStateFlow<Set<InternalBtDevice>>(emptySet())
+    val connectedDevices: StateFlow<Set<InternalBtDevice>> = _connectedDevices
 
     private  var btStateReceiver  = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -60,30 +79,58 @@ class BleDevicesViewModel @Inject constructor(
                 val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
                 _isBluetoothEnabled.value = state == BluetoothAdapter.STATE_ON
                 if (_isBluetoothEnabled.value) {
-                    loadBondedBleDevices()
+                    viewModelScope.launch {
+                        loadBondedBleDevices()
+                    }
                 } else {
                     clearBondedDevices()
+                }
+            } else {
+                val device: BluetoothDevice? = intent.parcelable(BluetoothDevice.EXTRA_DEVICE)
+                if (device == null) {
+                    Logger.w("BleDevicesViewModel", "Device in intent is null!")
+                    return
+                }
+                when (action) {
+                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                        addConnectedDevice(device)
+                    }
+
+                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                        removeConnectedDevice(device)
+                    }
                 }
             }
         }
     }
+
     init {
-        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
+        val filter = IntentFilter().apply {
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+        }
         application.registerReceiver(btStateReceiver, filter)
     }
 
-    fun refreshBluetoothState() {
-        Logger.v(
-            "BleDevicesViewModel",
-            "Refreshing Bluetooth state enabled to: ${bluetoothAdapter.isEnabled}"
-        )
-        _isBluetoothEnabled.value = bluetoothAdapter.isEnabled
+    // Add a device to the connected set
+    @SuppressLint("MissingPermission")
+    private fun addConnectedDevice(device: BluetoothDevice) {
+        val internalDevice = InternalBtDevice(device.name, device.address, isConnected = true)
+        _connectedDevices.value += internalDevice
+    }
+
+    // Remove a device from the connected set
+    private fun removeConnectedDevice(device: BluetoothDevice) {
+        _connectedDevices.value = _connectedDevices.value.filter {
+            it.address != device.address
+        }.toSet()
     }
 
     private val _bleDevices = MutableStateFlow<List<InternalBtDevice>>(emptyList())
 
     val bleDevices = _bleDevices.combine(
-        bleRepository.bluetoothPermissionsGranted
+        btPermissionRepository.bluetoothPermissionsGranted
     ) { devices, granted -> if (granted) devices else null }.stateIn(
         scope = viewModelScope,
         started = kotlinx.coroutines.flow.SharingStarted.Lazily,
@@ -91,28 +138,24 @@ class BleDevicesViewModel @Inject constructor(
     )
 
     private fun BluetoothDevice.whichType(): String {
-        return when (type) {
-            BluetoothDevice.DEVICE_TYPE_CLASSIC -> "Classic"
-            BluetoothDevice.DEVICE_TYPE_LE -> "BLE"
-            BluetoothDevice.DEVICE_TYPE_DUAL -> "Dual"
-            BluetoothDevice.DEVICE_TYPE_UNKNOWN -> "Unknown"
-            else -> "Unknown"
+
+        return if (ActivityCompat.checkSelfPermission(
+                application,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            when (type) {
+                BluetoothDevice.DEVICE_TYPE_CLASSIC -> "Classic"
+                BluetoothDevice.DEVICE_TYPE_LE -> "BLE"
+                BluetoothDevice.DEVICE_TYPE_DUAL -> "Dual"
+                BluetoothDevice.DEVICE_TYPE_UNKNOWN -> "Unknown"
+                else -> "Unknown"
+            }
+        } else {
+            "Unknown"
         }
     }
 
-    private val targetUUIDs = setOf(
-        UUID.fromString("00001108-0000-1000-8000-00805f9b34fb"),
-        UUID.fromString("0000110b-0000-1000-8000-00805f9b34fb"),
-        UUID.fromString("0000110e-0000-1000-8000-00805f9b34fb"),
-        UUID.fromString("0000111e-0000-1000-8000-00805f9b34fb")
-    )
-
-    // TODO:
-    @SuppressLint("MissingPermission")
-    private fun BluetoothDevice.isAudio(): Boolean {
-        return this.uuids?.map { UUID.fromString(it.toString()) }?.any { it in targetUUIDs }
-            ?: false
-    }
 
     @SuppressLint("MissingPermission")
     private fun BluetoothDevice.strPprint(): String {
@@ -129,26 +172,27 @@ class BleDevicesViewModel @Inject constructor(
     }
 
     // TODO also create a broadcast reciever to update the bonded device list with "live" devices when a device connect/disconnects.
-    fun loadBondedBleDevices() {
+    suspend fun loadBondedBleDevices(filterAudio: Boolean = false) {
         // TODO: If we already have checked the permission why do we need to do it again here?
         if (ActivityCompat.checkSelfPermission(
                 application,
                 Manifest.permission.BLUETOOTH_CONNECT
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            val bonded = bluetoothAdapter.bondedDevices
-                .also { devices ->
-                    Logger.v(
-                        "BleDevicesViewModel",
-                        "Bonded devices" +
-                                devices.joinToString(separator = "\n\n") { it.strPprint() })
+            val bonded = bluetoothAdapter.bondedDevices ?: emptySet()
+            val audioDevices = mutableListOf<InternalBtDevice>()
+            for (device in bonded) {
+                Logger.v("BleDevicesViewModel", "Bonded device: ${device.strPprint()}")
+                val isAudio = btRepository.isAudioCapable(device)
+                if (isAudio && device.name != null) {
+                    audioDevices.add(InternalBtDevice(device.name, device.address, false))
                 }
-                ?.filter { it.isAudio() }
-                ?.sortedBy { it.name ?: it.address }
-                ?.map { InternalBtDevice(it.name, it.address, false) }
-                ?: emptyList()
-            _bleDevices.value = bonded
-            Logger.v("BleDevicesViewModel", " ${bonded.size} Bonded BLE devices found")
+            }
+            Logger.v(
+                "BleDevicesViewModel",
+                " ${bonded.size} Bonded BLE devices found.  ${audioDevices.size} are potentially audio capable"
+            )
+            _bleDevices.value = audioDevices
         } else {
             Logger.e(
                 "BleDevicesViewModel",
@@ -162,44 +206,23 @@ class BleDevicesViewModel @Inject constructor(
         _bleDevices.value = emptyList()
     }
 
-    @SuppressLint("MissingPermission")
-    private fun isA2dpSinkSupported(device: BluetoothDevice): Boolean {
-        // Use BluetoothProfile to check A2DP support
-
-        try {
-            // Get the A2DP proxy object
-            val a2dp = bluetoothAdapter.getProfileProxy(
-                application,
-                object : ServiceListener {
-                    override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
-                        // Profile proxy connected
-                    }
-
-                    override fun onServiceDisconnected(profile: Int) {
-                        // Profile proxy disconnected
-                    }
-                },
-                BluetoothProfile.A2DP
-            ) as BluetoothA2dp
-
-            // Check if the device is connected via A2DP
-            if (a2dp != null) {
-                val connectedDevices = a2dp.connectedDevices
-                return connectedDevices.contains(device)
-            }
-        } catch (e: Exception) {
-            Log.e("BluetoothAudio", "Error checking A2DP support", e)
-        }
-
-        return false
-    }
-
     // Potentially expose a method to update device selection in DB
     fun selectDeviceForPlaceTag(placeTag: PlaceTag, deviceAddress: String) {
         viewModelScope.launch {
             val updated = placeTag.withSelectedDeviceAddress(deviceAddress)
             placeTagDao.insertPlaceTags(listOf(updated.toEntity())) // Or a dedicated update method
         }
+    }
+
+    // Check if the selected device is currently connected
+    @SuppressLint("MissingPermission")
+    private fun isDeviceConnected(deviceAddress: String): Boolean {
+        val a2dp = bluetoothAdapter.getProfileProxy(
+            application,
+            null,
+            BluetoothProfile.A2DP
+        ) as? BluetoothA2dp
+        return a2dp?.connectedDevices?.any { it.address == deviceAddress } == true
     }
 
     override fun onCleared() {

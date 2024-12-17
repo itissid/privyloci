@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.kvrepository.UserPreferences
@@ -42,7 +41,7 @@ sealed class BlePermissionEvent {
 
 // Should not be persistent like preferences
 @Singleton
-class BleRepository @Inject constructor() {
+class BTPermissionRepository @Inject constructor() {
     private val _bluetoothPermissionsGranted = MutableStateFlow(false)
     val bluetoothPermissionsGranted: StateFlow<Boolean> = _bluetoothPermissionsGranted.asStateFlow()
 
@@ -55,7 +54,7 @@ class BleRepository @Inject constructor() {
 class BlePermissionViewModel @Inject constructor(
     application: Application,
     private val userPreferences: UserPreferences,
-    private val bleRepository: BleRepository
+    private val btPermissionRepository: BTPermissionRepository
 ) : AndroidViewModel(application) {
 
     // Tracks the current BLE rationale state
@@ -87,7 +86,7 @@ class BlePermissionViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             blePermissionGranted.collect { granted ->
-                bleRepository.updateBluetoothPermissions(granted)
+                btPermissionRepository.updateBluetoothPermissions(granted)
             }
         }
     }

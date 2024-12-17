@@ -30,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,7 @@ import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.PlaceTagType
 import me.itissid.privyloci.datamodels.tagString
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
+import me.itissid.privyloci.util.Logger
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -57,9 +59,10 @@ fun PlaceCard(
     bluetoothNotEnabledHandler: () -> Unit,
     onDeviceSelectedForPlaceTag: PlaceTag.(String) -> Unit,
     btDevicesRescanHandler: () -> Unit,
+    preSelectedDevice: InternalBtDevice?,
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    var selectedDevice by remember { mutableStateOf<InternalBtDevice?>(null) }
+    Logger.v("PlaceCard", "PlaceCard: ${placeTag.name} has preSelectedDevice: $preSelectedDevice")
 
     Card(
         modifier = Modifier
@@ -103,16 +106,23 @@ fun PlaceCard(
                                 ScanForBTDevices(
                                     placeTag,
                                     onDismiss = { showDialog = false },
-                                    onConfirm = btDevicesRescanHandler
+                                    onConfirm = {
+                                        btDevicesRescanHandler()
+                                        showDialog = false
+                                    }
                                 )
                             } else {
                                 LazyRadioDialogue(
                                     "Select a device for ${placeTag.name}",
                                     btDevices,
-                                    selectedDevice,
+                                    preSelectedDevice,
                                     { showDialog = false },
                                     {
-                                        selectedDevice = this
+                                        // TODO: BUGFIX: We need to retrieve the devices saved in the DB and show them as selected and make sure it is actually
+                                        // in the list of btDevices.
+//                                        preSelectedDevice = this
+                                        // N2S: We might also reserve selectedDevice with this  placeTag in memory, should that device-placeTag relation be exclusive.
+                                        // on recompose we filter btDevices or gray out previously selected device-placeTag pairs.
                                         onDeviceSelectedForPlaceTag(
                                             placeTag,
                                             this.address

@@ -124,6 +124,13 @@ fun PlaceTag.toEntity(): PlaceTagEntity {
     )
 }
 
+@Entity(tableName = "device_capabilities")
+data class DeviceCapabilityEntity(
+    @PrimaryKey val address: String,
+    val isAudioCapable: Boolean
+)
+
+
 @Serializable
 @Parcelize
 @Entity(tableName = "subscriptions")
