@@ -1,10 +1,6 @@
 package me.itissid.privyloci.viewmodels
 
 import android.app.Application
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -81,6 +77,7 @@ class BlePermissionViewModel @Inject constructor(
 
     private val _shouldShowRationale: MutableStateFlow<Boolean> = MutableStateFlow(false)
     private val shouldShowRationale: StateFlow<Boolean> = _shouldShowRationale.asStateFlow()
+
     fun setShouldShowRationale(show: Boolean) {
         _shouldShowRationale.value = show
     }
@@ -108,10 +105,10 @@ class BlePermissionViewModel @Inject constructor(
      */
     fun onBleIconClicked() {
         viewModelScope.launch {
-            if (_blePermissionGranted.value) return@launch
+            if (blePermissionGranted.value) return@launch
 
             when {
-                _shouldShowRationale.value -> showRationale(BleRationaleState.BLE_PERMISSION_RATIONALE_SHOULD_BE_SHOWN)
+                shouldShowRationale.value -> showRationale(BleRationaleState.BLE_PERMISSION_RATIONALE_SHOULD_BE_SHOWN)
                 !userVisitedBlePermissionLauncher.value -> showRationale(BleRationaleState.MULTIPLE_PERMISSIONS_SHOULD_BE_LAUNCHED)
                 else -> showRationale(BleRationaleState.VISIT_SETTINGS)
             }

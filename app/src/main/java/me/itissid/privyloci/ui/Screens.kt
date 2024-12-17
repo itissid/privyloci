@@ -101,7 +101,7 @@ fun PlacesAndAssetsScreen(
     val context = LocalContext.current
     val bleDevices by bleViewModel.bleDevices.collectAsState()
     val isBluetoothEnabled by bleViewModel.isBluetoothEnabled.collectAsState()
-    val connectedDevices by bleViewModel.connectedDevices.collectAsState()
+//    val connectedDevices by bleViewModel.connectedDevices.collectAsState()
     val btDevicesRescanHandler = {
         bleViewModel.loadBondedBleDevices()
     }

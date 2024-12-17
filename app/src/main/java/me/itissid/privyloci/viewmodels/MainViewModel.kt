@@ -72,7 +72,7 @@ class MainViewModel @Inject constructor(
                 initialValue = false
             )
 
-    val wasFGPersistentNotificationDismissed =
+    val wasFGPersistentNotificationDismissed: StateFlow<Boolean> =
         repository.wasFGPersistentNotificationDismissed
             .stateIn(
                 scope = viewModelScope,

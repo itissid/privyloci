@@ -114,10 +114,17 @@ dependencies {
     // Kotlin + coroutines
     implementation "androidx.work:work-runtime-ktx:$work_version"
 
+    // Testing libraries
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     debugImplementation 'androidx.compose.ui:ui-tooling:1.7.2'
+
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4"
+    testImplementation "io.mockk:mockk:1.13.2" // Use the latest version
+    testImplementation "com.google.truth:truth:1.1.3" // Use the latest version
+    testImplementation "com.google.dagger:hilt-android-testing:2.52"
+    kspTest "com.google.dagger:hilt-compiler:2.52"
 
 
 }

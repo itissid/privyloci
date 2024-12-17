@@ -150,7 +150,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
         viewModel.setFGPersistentNotificationDismissed(false)
     }
 
-    val userDismissedFGNotification = remember { mutableStateOf<Boolean>(false) }
+    val userDismissedFGNotification = remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {

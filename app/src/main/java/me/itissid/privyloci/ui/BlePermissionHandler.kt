@@ -50,7 +50,7 @@ fun BlePermissionHandler(bleViewModel: BlePermissionViewModel) {
 
     bleViewModel.setBlePermissionGranted(blePermissionState.allPermissionsGranted)
     bleViewModel.setShouldShowRationale(blePermissionState.shouldShowRationale)
-
+    // N2S: Could this be done by rememberCoroutineScope instead?
     LaunchedEffect(Unit) {
         bleViewModel.permissionEvents.collect {
             when (it) {

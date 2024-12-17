@@ -141,11 +141,11 @@ class BleDevicesViewModel @Inject constructor(
                     Logger.v(
                         "BleDevicesViewModel",
                         "Bonded devices" +
-                                devices.joinToString(separator = "\n\n") { it.pprint() })
+                                devices.joinToString(separator = "\n\n") { it.strPprint() })
                 }
                 ?.filter { it.isAudio() }
                 ?.sortedBy { it.name ?: it.address }
-                ?.map {InternalBtDevice(it.name, it.address)}
+                ?.map { InternalBtDevice(it.name, it.address, false) }
                 ?: emptyList()
             _bleDevices.value = bonded
             Logger.v("BleDevicesViewModel", " ${bonded.size} Bonded BLE devices found")
