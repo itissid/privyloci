@@ -60,8 +60,8 @@ class UserPreferences @Inject constructor(
         suspend fun <T> DataStore<Preferences>.editKey(
             key: Preferences.Key<T>,
             value: T
-        ) {
-            runCatching {
+        ): Result<Preferences> {
+            return runCatching {
                 this.edit { preferences ->
                     Logger.v("UserPreferences", "Editing $key: $value")
                     preferences[key] = value
@@ -84,21 +84,21 @@ class UserPreferences @Inject constructor(
 
     }
 
-    suspend fun setUserVisitedPermissionLauncher(dismissed: Boolean) {
-        dataStore.editKey(
+    suspend fun setUserVisitedPermissionLauncher(dismissed: Boolean): Result<Preferences> {
+        return dataStore.editKey(
             visitedPermissionLauncher, dismissed
         )
     }
 
-    suspend fun setUserPausedLocationCollection(paused: Boolean) {
-        dataStore.editKey(
+    suspend fun setUserPausedLocationCollection(paused: Boolean): Result<Preferences> {
+        return dataStore.editKey(
             pausedLocationCollectionKey, paused
         )
     }
 
     // BT Related pregs
-    suspend fun setUserVisitedBlePermissionLauncher(visited: Boolean) {
-        dataStore.editKey(
+    suspend fun setUserVisitedBlePermissionLauncher(visited: Boolean): Result<Preferences> {
+        return dataStore.editKey(
             visitedBlePermissionLauncher, visited
         )
     }
