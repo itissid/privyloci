@@ -72,7 +72,6 @@ class BlePermissionViewModel @Inject constructor(
 
     // Flow indicating if the user visited the BLE permission launcher before
     private val userVisitedBlePermissionLauncher = userPreferences.userVisitedBlePermissionLauncher
-        .map { it.getOrDefault(false) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     // Flow or a boolean indicating if BLE permission is currently granted

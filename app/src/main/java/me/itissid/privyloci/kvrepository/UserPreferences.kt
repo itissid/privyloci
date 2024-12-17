@@ -37,15 +37,12 @@ class UserPreferences @Inject constructor(
         fun <T> DataStore<Preferences>.readAsResult(
             key: Preferences.Key<T>,
             defaultValue: T
-        ): Flow<Result<T>> {
+        ): Flow<T> {
             return this.data
                 .map { preferences ->
-                    Result.success(
-                        preferences[key]
-                            ?: defaultValue
-                    ).also {
-                        Logger.v("UserPreferences", "Read $key: ${it.getOrNull()}")
-                    }
+                    val result = preferences[key] ?: defaultValue
+                    Logger.v("UserPreferences", "Read $key: $result")
+                    result
                 }
                 .catch { exception ->
                     Logger.e(
@@ -53,7 +50,7 @@ class UserPreferences @Inject constructor(
                         "Error reading preferences: Message: `${exception.message}`",
                         exception
                     )
-                    emit(Result.failure(exception))
+                    emit(defaultValue)
                 }
         }
 

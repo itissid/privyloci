@@ -64,43 +64,43 @@ class MainViewModel @Inject constructor(
         )
 
     // Expose preferences as StateFlow public variables.
-    val wasFGPermissionRationaleDismissed: StateFlow<Result<Boolean>> =
+    val wasFGPermissionRationaleDismissed =
         repository.wasFGPermissionRationaleDismissed
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = Result.success(false)
+                initialValue = false
             )
 
-    val wasFGPersistentNotificationDismissed: StateFlow<Result<Boolean>> =
+    val wasFGPersistentNotificationDismissed =
         repository.wasFGPersistentNotificationDismissed
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = Result.success(false)
+                initialValue = false
             )
 
-    val wasReactivateFGRationaleDismissed: StateFlow<Result<Boolean>> =
+    val wasReactivateFGRationaleDismissed: StateFlow<Boolean> =
         repository.wasReactivateFGRationaleDismissed
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = Result.success(false)
+                initialValue = false
             )
 
-    val userVisitedPermissionLauncher: StateFlow<Result<Boolean>> =
+    val userVisitedPermissionLauncher: StateFlow<Boolean> =
         userPreferences.userVisitedPermissionLauncher
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = Result.success(false)
+                initialValue = false
             )
-    val userPausedLocationCollection: StateFlow<Result<Boolean>> =
+    val userPausedLocationCollection: StateFlow<Boolean> =
         userPreferences.userPausedLocationCollection
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
-                initialValue = Result.success(false)
+                initialValue = false
             )
 
     fun setFGPermissionRationaleDismissed(dismissed: Boolean) {

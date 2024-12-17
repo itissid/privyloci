@@ -138,13 +138,12 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
         )
     ) { Logger.v(TAG, it.entries.joinToString(separator = "\n")) }
 
-    val userVisitedPermissionLauncherPreference =
-        viewModel.userVisitedPermissionLauncher.collectAsState().value.getOrDefault(false)
+    val userVisitedPermissionLauncherPreference by
+    viewModel.userVisitedPermissionLauncher.collectAsState()
 
-    val userPausedLocationCollection =
-        viewModel.userPausedLocationCollection.collectAsState().value.getOrDefault(
-            false
-    )
+    val userPausedLocationCollection by
+    viewModel.userPausedLocationCollection.collectAsState()
+
     // location permission revocation is superflous to previous user setting to stop collection.
     if (!foregroundLocationPermissionState.allPermissionsGranted) {
         viewModel.setUserPausedLocationCollection(false)
@@ -157,7 +156,7 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
     LaunchedEffect(Unit) {
         coroutineScope.launch {
             viewModel.wasFGPersistentNotificationDismissed.collect { result ->
-                userDismissedFGNotification.value = result.getOrDefault(false)
+                userDismissedFGNotification.value = result
             }
         }
     }
@@ -350,12 +349,12 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
 fun LaunchPrivyForeGroundService(
     context: Context,
     userDismissedForegroundNotification: Boolean,
-    userPausedLocationCollectionStateFlow: StateFlow<Result<Boolean>>,
+    userPausedLocationCollectionStateFlow: StateFlow<Boolean>,
     isRunningStateFlow: StateFlow<Boolean>
 ) {
-    val userPausedLocationCollection =
-        userPausedLocationCollectionStateFlow.collectAsState().value.getOrDefault(false)
-    val isRunning = isRunningStateFlow.collectAsState().value
+    val userPausedLocationCollection by
+    userPausedLocationCollectionStateFlow.collectAsState()
+    val isRunning by isRunningStateFlow.collectAsState()
     Logger.d(
         TAG,
         "User dismissed FG notification: $userDismissedForegroundNotification, User paused location collection: $userPausedLocationCollection, isRunning: $isRunning"
