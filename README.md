@@ -15,7 +15,7 @@ It is also compatible, due to an open design, to let users and 3p-apps to work a
 To think that the idea is, “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are valid privacy implementations, one has to think from first principles to solve the real problem, which is deeply rooted in the Location Permission Structure and the designs built on it on major mobile platforms, as I explain below. This is a major concern and can be mitigated for a good number of apps to function while not letting users deal with the worry about privacy of their location data.
 
 # Is it meant to be an App? How can I use it?
-Not exactly. It is an app form for the demo and usable, for example to track assets and set private geofences, though I would rather see it as being a core service an Infrastructure as a Service(IaaS) on device to enable users and and 3p-apps alike. The demo is for giving you a feel for what the experience is like. 
+Not exactly. It is an app form for the demo and it can be quite usable -  for example to track assets and set private geofences -  though I would rather see it as being a core service an Infrastructure as a Service(IaaS) on device to enable users and and 3p-apps alike. The demo is for giving you a feel for what the experience is like, but also what trusting a service like this means in real tangible terms for users.
 
 [![*The infamous multi permission launcher for location permissions](./docs/App_MultiPermission_Launcher_Screen_recording_20241210_091435.gif](https://github.com/user-attachments/assets/19fe766d-84b7-48c7-abd5-06247b9315f8)
 
