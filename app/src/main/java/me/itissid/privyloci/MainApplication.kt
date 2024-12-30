@@ -6,22 +6,31 @@ import android.app.NotificationManager
 import android.os.Build
 import android.content.Context
 import android.util.Log
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import me.itissid.privyloci.data.DataProvider
 import me.itissid.privyloci.datamodels.toEntity
 import me.itissid.privyloci.db.AppDatabase
 import me.itissid.privyloci.eventprocessors.GeofenceEventProcessor
+import me.itissid.privyloci.kvrepository.ExperimentsPreferencesManager
 import me.itissid.privyloci.service.PrivyForegroundService
 import me.itissid.privyloci.util.Logger
+import me.itissid.privyloci.viewmodels.ExperimentFlagViewModel
+import javax.inject.Inject
 
 @HiltAndroidApp
 class MainApplication : Application() {
+    @Inject
+    lateinit var experimentsPreferencesManager: ExperimentsPreferencesManager
+
     companion object {
         lateinit var database: AppDatabase
             private set
@@ -29,8 +38,21 @@ class MainApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        setDebugExperimentFlags()
         initializeDatabase()
         createNotificationChannel()
+    }
+
+    private fun setDebugExperimentFlags() {
+        // TODO: experiement to do this async.
+        runBlocking {
+            if (BuildConfig.ONBOARDING_HEADPHONES) {
+                experimentsPreferencesManager.setExperimentFlag(true)
+            } else {
+                experimentsPreferencesManager.setExperimentFlag(false)
+            }
+
+        }
     }
 
     private fun initializeDatabase() {

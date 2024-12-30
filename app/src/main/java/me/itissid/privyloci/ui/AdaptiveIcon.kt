@@ -55,7 +55,6 @@ sealed class IconResource(val notGranted: Int, val granted: Int) {
     data object LocationIcon : IconResource(R.drawable.ic_no_location_icon, R.drawable.ic_location)
     data object BLEIcon :
         IconResource(R.drawable.noun_bluetooth_off_482384, R.drawable.noun_bluetooth_482388)
-
 }
 
 @Composable

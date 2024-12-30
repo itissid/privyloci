@@ -122,7 +122,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreenWrapper(viewModel: MainViewModel) {
     val context = LocalContext.current as Activity
-
     // Variables for managing location and other sensor permissions.
     var fgPermissionRationaleState by
     rememberSaveable { mutableStateOf<ForegroundPermissionRationaleState?>(null) }
@@ -160,7 +159,6 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
             }
         }
     }
-
 
     Logger.v(
         TAG,

@@ -25,7 +25,6 @@ class ServiceStoppedWorker(
         sendServiceStoppedNotification()
         return Result.success()
     }
-
     private fun sendServiceStoppedNotification() {
         val notificationManager =
             applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

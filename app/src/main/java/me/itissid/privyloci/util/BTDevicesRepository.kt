@@ -10,9 +10,12 @@ import androidx.core.app.ActivityCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import me.itissid.privyloci.datamodels.DeviceCapabilitiesDao
 import me.itissid.privyloci.datamodels.DeviceCapabilityEntity
+import me.itissid.privyloci.datamodels.InternalBtDevice
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class BTDevicesRepository @Inject constructor(
     private val deviceCapabilitiesDao: DeviceCapabilitiesDao,
     @ApplicationContext private val context: Context
@@ -77,13 +80,9 @@ class BTDevicesRepository @Inject constructor(
         UUID.fromString("0000111e-0000-1000-8000-00805f9b34fb")
     )
 
-    @SuppressLint("MissingPermission")
-    suspend fun isAudioCapable(device: BluetoothDevice): Boolean {
-        // 1. Check cache
-        val cached = deviceCapabilitiesDao.getCapability(device.address)
-        if (cached != null) return cached.isAudioCapable
 
-        // 2. Check UUIDs if we have permission
+    //fast check, avoid scanning.
+    fun isAudioCapableFastCheck(device: BluetoothDevice): Boolean {
         if (ActivityCompat.checkSelfPermission(
                 context,
                 Manifest.permission.BLUETOOTH_CONNECT
@@ -92,16 +91,29 @@ class BTDevicesRepository @Inject constructor(
             val deviceUuids = device.uuids?.map { it.uuid } ?: emptyList()
             val matchesAudio = deviceUuids.any { it in audioTargetUUIDs }
             if (matchesAudio) {
-                deviceCapabilitiesDao.insertCapability(DeviceCapabilityEntity(device.address, true))
                 return true
             }
         }
-
-
-        // If all else fails, mark as not audio
-        deviceCapabilitiesDao.insertCapability(DeviceCapabilityEntity(device.address, false))
         return false
     }
 
+    suspend fun addDeviceCapabilities(device: InternalBtDevice, isAudioCapable: Boolean) {
+        deviceCapabilitiesDao.insertCapability(
+            DeviceCapabilityEntity(
+                device.address,
+                isAudioCapable
+            )
+        )
+    }
+
+    suspend fun isAudioCapableOffline(device: BluetoothDevice): Boolean {
+        /**
+         * In case the device is not found in the isAudioCapableFastCheck(used for btAdapter.bondedDevices)
+         * I can use this method to check if a previously *connected* device had registered its a2dp capabilities.
+         * */
+        val cached = deviceCapabilitiesDao.getCapability(device.address)
+        if (cached != null) return cached.isAudioCapable
+        return false
+    }
 
 }

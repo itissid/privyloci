@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.InternalBtDevice
@@ -31,6 +34,7 @@ import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.util.Logger
 import me.itissid.privyloci.viewmodels.BleDevicesViewModel
+import me.itissid.privyloci.viewmodels.ExperimentFlagViewModel
 
 
 @Composable
@@ -106,14 +110,27 @@ fun PlacesAndAssetsScreen(
     val context = LocalContext.current
     val bleDevices by bleViewModel.bleDevices.collectAsState()
     val isBluetoothEnabled by bleViewModel.isBluetoothEnabled.collectAsState()
+    // TODO: Use these. if these are not in the bleDevices, we should merge them
+    Logger.v(
+        "PlacesAndAssetsScreen",
+        "Connected bleDevices: ${bleDevices?.filter { it.isConnected }}"
+    )
     val coroutineScope = rememberCoroutineScope()
-    val connectedDevices by bleViewModel.connectedDevices.collectAsState()
+
+    val experimentFlagViewModel: ExperimentFlagViewModel = hiltViewModel()
+    val experimentOn by experimentFlagViewModel.experimentOn.collectAsState()
+
+    LaunchedEffect(bleDevices) {
+        // Preloading prevents one less click in the UI.
+        bleViewModel.loadBondedBleDevices()
+    }
 
     val btDevicesRescanHandler = {
         coroutineScope.launch {
+            Logger.v("PlacesAndAssetsScreen", "Loading Bonded devices from rescan handler")
             bleViewModel.loadBondedBleDevices()
         }
-        Logger.v("PlacesAndAssetsScreen", "Rescanning for BT devices")
+        Unit
     }
 
     var bluetoothEnableHandler: () -> Unit = (
@@ -124,9 +141,53 @@ fun PlacesAndAssetsScreen(
                 }
             })
 
-    val onDeviceSelected = { placeTag: PlaceTag, selectedAddress: String ->
-        bleViewModel.selectDeviceForPlaceTag(placeTag, selectedAddress)
+    // State to track the selected device and whether we are waiting for connection
+    var waitingForConnection by remember { mutableStateOf<InternalBtDevice?>(null) }
+
+    // If waitingForConnection is not null, we show a dialog prompting user
+    if (waitingForConnection != null && experimentOn) {
+        if (waitingForConnection?.isConnected == true) {
+            OnboardingWaitDialog(
+                deviceName = waitingForConnection?.name ?: "Your Device",
+                onDismiss = {
+                    waitingForConnection = null
+                }
+            )
+        } else {
+            // Device already connected
+            // Play a media and then wait
+        }
     }
+
+    val onDeviceSelected = { placeTag: PlaceTag, selectedAddress: String ->
+        // Also inserts device selection in the place tag in the database.
+        bleViewModel.selectDeviceForPlaceTag(placeTag, selectedAddress)
+
+        if (experimentOn && placeTag.isTypeBLE()) {
+            val selectedDevice = bleDevices?.firstOrNull { it.address == selectedAddress }
+            if (selectedDevice != null) {
+                Logger.v("PlacesAndAssetsScreen", "Device $selectedDevice is selected")
+                waitingForConnection = selectedDevice
+            }
+        } // else
+
+    }
+    LaunchedEffect(bleDevices) {
+        val targetDevice = waitingForConnection
+        if (targetDevice != null && bleDevices != null) {
+            val isNowConnected =
+                bleDevices!!.any { it.address == targetDevice.address && it.isConnected }
+            if (isNowConnected) {
+                Logger.v("PlacesAndAssetsScreen", "Device $targetDevice is connected")
+                // Onboarding success: user put on their headphones
+                waitingForConnection = null
+                // Trigger next step: onOnboardingComplete could tell the service to play media
+//                onOnboardingComplete()
+                
+            }
+        }
+    }
+
     PlaceCards(
         places,
         blePermissionGranted,
@@ -140,27 +201,40 @@ fun PlacesAndAssetsScreen(
 }
 
 @Composable
+fun OnboardingWaitDialog(
+    deviceName: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        title = { Text("Put On Your Headphones") },
+        text = {
+            Text("Please put on and connect $deviceName. We will begin a short onboarding process as soon as they're connected.")
+        }
+    )
+}
+
+@Composable
 fun PlaceCards(
     places: List<PlaceTag>,
     blePermissionGranted: Boolean,
     noPermissionOnClickHandler: () -> Unit,
-    bleDevices: List<InternalBtDevice>?,
+    bleDevices: Set<InternalBtDevice>?,
     btDevicesRescanHandler: () -> Unit,
     bluetoothEnabled: Boolean,
     bluetoothNotEnabledHandler: () -> Unit,
     onDeviceSelectedForPlaceTag: PlaceTag.(address: String) -> Unit
 ) {
-    // Create a map from places to bleDevices for initializeing selected devices.
-//    var _selectedDevicesMap: MutableMap<Int, InternalBtDevice?> = mutableMapOf()
-//    places.forEach { place ->
-//        val selectedDeviceAddress = place.getSelectedDeviceAddress()
-//        if (selectedDeviceAddress != null) {
-//            val selectedDevice = bleDevices?.firstOrNull { it.address == selectedDeviceAddress }
-//            if (selectedDevice != null) {
-//                _selectedDevicesMap += place.id to selectedDevice
-//            }
-//        }
-//    }
+    // This map is needed to maintain a list of device choices selected by the user internally.
+    // TODO: When this code is stable move this logic to the ViewModel and hold this state there.
+    // to do this I need to create an intermediate flow with another derived type of PlaceTag and that prepopulates it with
+    // the logic in getSelectedDeviceAddress. Then I can use tha directly.
     var selectedDevicesMap by remember {
         mutableStateOf<Map<Int, InternalBtDevice?>>(emptyMap())
     }
@@ -179,15 +253,17 @@ fun PlaceCards(
         contentPadding = PaddingValues(16.dp)
     ) {
         items(places, key = { it.id }) { placeTag ->
-            Logger.v(
-                "PlaceCards",
-                "bluetoothEnabled? $bluetoothEnabled "
-            )
+//            Logger.v(
+//                "PlaceCards",
+//                "bluetoothEnabled? $bluetoothEnabled "
+//            )
             val selectedDevice = selectedDevicesMap[placeTag.id]
-            Logger.v(
-                "PlaceCards",
-                "PlaceCard: ${placeTag.name} has preSelectedDevice: $selectedDevice"
-            )
+            selectedDevice?.run {
+                Logger.v(
+                    "PlaceCards",
+                    "PlaceCard: ${placeTag.name} has preSelectedDevice: $selectedDevice"
+                )
+            }
             // N2S: Instead consider just consider passing a BTDeviceState like object that  sets state
             // do this action or that action. The different states are:
             // 1. BT not enabled

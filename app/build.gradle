@@ -27,6 +27,8 @@ android {
             buildConfigField "boolean", "REPLACE_ALWAYS", "false"
             buildConfigField "boolean", "WIPE_DATA", "false"
             buildConfigField "boolean", "LOAD_MOCK_DATA", "true"
+            // TODO: Remove this once we get the firebase config together,
+            buildConfigField "boolean", "ONBOARDING_HEADPHONES", "true"
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
@@ -35,6 +37,7 @@ android {
             buildConfigField "boolean", "REPLACE_ALWAYS", "false"
             buildConfigField "boolean", "WIPE_DATA", "false"
             buildConfigField "boolean", "LOAD_MOCK_DATA", "false"
+            buildConfigField "boolean", "ONBOARDING_HEADPHONES", "false"
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

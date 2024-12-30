@@ -10,7 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.itissid.privyloci.kvrepository.UserPreferences.Companion.editKey
-import me.itissid.privyloci.kvrepository.UserPreferences.Companion.readAsResult
+import me.itissid.privyloci.kvrepository.UserPreferences.Companion.readWrapper
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,14 +23,14 @@ class Repository @Inject constructor(@ApplicationContext context: Context) {
     private val dataStore: DataStore<Preferences> = context.privyLociRepository
     private val isServiceRunningKey = booleanPreferencesKey(keyIsServiceRunning)
     val wasFGPermissionRationaleDismissed =
-        dataStore.readAsResult(fgPerrmissionRationaleDismissedKey, false)
+        dataStore.readWrapper(fgPerrmissionRationaleDismissedKey, false, "Repository")
 
 
     val wasFGPersistentNotificationDismissed =
-        dataStore.readAsResult(fgPersistentNotificationDismissedKey, false)
+        dataStore.readWrapper(fgPersistentNotificationDismissedKey, false, "Repository")
 
     val wasReactivateFGRationaleDismissed =
-        dataStore.readAsResult(reactivateFGRationaleDismissedKey, false)
+        dataStore.readWrapper(reactivateFGRationaleDismissedKey, false, "Repository")
 
     // We should make all these functions accept lambdas that make them log with a tag and message
     suspend fun setFGPermissionRationaleDismissed(dismissed: Boolean) {

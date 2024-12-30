@@ -54,7 +54,7 @@ fun PlaceCard(
     placeTag: PlaceTag,
     blePermissionGranted: Boolean,
     noPermissionOnClick: () -> Unit,
-    btDevices: List<InternalBtDevice>?,
+    btDevices: Set<InternalBtDevice>?,
     bluetoothEnabled: Boolean,
     bluetoothNotEnabledHandler: () -> Unit,
     onDeviceSelectedForPlaceTag: PlaceTag.(String) -> Unit,
@@ -62,7 +62,7 @@ fun PlaceCard(
     preSelectedDevice: InternalBtDevice?,
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    Logger.v("PlaceCard", "PlaceCard: ${placeTag.name} has preSelectedDevice: $preSelectedDevice")
+//    Logger.v("PlaceCard", "PlaceCard: ${placeTag.name} has preSelectedDevice: $preSelectedDevice")
 
     Card(
         modifier = Modifier
@@ -120,7 +120,6 @@ fun PlaceCard(
                                     {
                                         // TODO: BUGFIX: We need to retrieve the devices saved in the DB and show them as selected and make sure it is actually
                                         // in the list of btDevices.
-//                                        preSelectedDevice = this
                                         // N2S: We might also reserve selectedDevice with this  placeTag in memory, should that device-placeTag relation be exclusive.
                                         // on recompose we filter btDevices or gray out previously selected device-placeTag pairs.
                                         onDeviceSelectedForPlaceTag(
@@ -149,7 +148,7 @@ fun PlaceCard(
 @Composable
 fun LazyRadioDialogue(
     titleText: String = "Select from the list",
-    bleDevices: List<InternalBtDevice>,
+    bleDevices: Set<InternalBtDevice>,
     selectedDevice: InternalBtDevice?,
     onDismiss: () -> Unit,
     onclick: InternalBtDevice.() -> Unit
@@ -184,7 +183,7 @@ fun LazyRadioDialogue(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp)
                 ) {
-                    items(bleDevices) { device ->
+                    items(bleDevices.toList()) { device ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -194,7 +193,7 @@ fun LazyRadioDialogue(
                                 }
                         ) {
                             Text(
-                                text = device.name,
+                                text = "${if (device.isConnected) "•" else ""}${device.name}",
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                             RadioButton(

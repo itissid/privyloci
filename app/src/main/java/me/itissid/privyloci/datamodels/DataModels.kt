@@ -47,10 +47,10 @@ sealed class PlaceTagType {
     data object PLACE : PlaceTagType()
 
     // Group all asset-related types under ASSET.
-    sealed class ASSET : PlaceTagType() {
-        data object BTHeadphones : ASSET()
-        data object BTCar : ASSET()
-        data object BTGeneric : ASSET()
+    sealed class ASSET(val isBT: Boolean) : PlaceTagType() {
+        data object BTHeadphones : ASSET(true)
+        data object BTCar : ASSET(true)
+        data object BTGeneric : ASSET(true)
         // Future devices as we support them
     }
 }
@@ -71,7 +71,7 @@ data class PlaceTag(
         }
     }
     fun isTypeBLE(): Boolean =
-        this.type == PlaceTagType.ASSET.BTHeadphones || this.type == PlaceTagType.ASSET.BTCar
+        this.type is PlaceTagType.ASSET && this.type.isBT
 
     // Retrieve the selected BLE device address if this PlaceTag is BLEHeadphones.
     fun getSelectedDeviceAddress(): String? {

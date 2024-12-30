@@ -25,20 +25,20 @@ fun PlacesCardPreview() {
         val onDeviceSelected =
             { placeTag: PlaceTag, address: String -> println("Selected $placeTag and $address") }
         val bleDevices =
-            listOf<InternalBtDevice>(
-                InternalBtDevice("My Device", "00:00:00:00:00:00", true),
-                InternalBtDevice("Another Device", "00:00:00:00:00:01", true),
-                InternalBtDevice("Yet Another Device", "00:00:00:00:00:02", true),
-                InternalBtDevice("One More Device", "00:00:00:00:00:03", true),
+            setOf<InternalBtDevice>(
+                InternalBtDevice("My Device", "00:00:00:00:00:00", false),
+                InternalBtDevice("Another Device", "00:00:00:00:00:01", false),
+                InternalBtDevice("Yet Another Device", "00:00:00:00:00:02", false),
+                InternalBtDevice("One More Device", "00:00:00:00:00:03", false),
                 // Add 5 more devices
-                InternalBtDevice("My Headphones", "00:00:00:00:00:04", true),
-                InternalBtDevice("My Car", "00:00:00:00:00:05", true),
-                InternalBtDevice("My Watch", "00:00:00:00:00:06", true),
+                InternalBtDevice("My Headphones", "00:00:00:00:00:04", false),
+                InternalBtDevice("My Car", "00:00:00:00:00:05", false),
+                InternalBtDevice("My Watch", "00:00:00:00:00:06", false),
                 InternalBtDevice("My Laptop", "00:00:00:00:00:07", true),
-                InternalBtDevice("My Roomba", "00:00:00:00:00:08", true),
-                InternalBtDevice("My Fridge, yes, my fridge", "00:00:00:00:00:09", true),
+                InternalBtDevice("My Roomba", "00:00:00:00:00:08", false),
+                InternalBtDevice("My Fridge, yes, my fridge", "00:00:00:00:00:09", false),
                 InternalBtDevice("My TV", "00:00:00:00:00:10", true),
-                InternalBtDevice("My AC", "00:00:00:00:00:11", true),
+                InternalBtDevice("My AC", "00:00:00:00:00:11", false),
             )
         PlaceCards(
             places = placesAndAssets,
@@ -65,7 +65,7 @@ fun PlacesCardPreview() {
 @Composable
 fun LazyRadioDialogueDisplay() {
     val bleDevices =
-        listOf<InternalBtDevice>(
+        setOf<InternalBtDevice>(
             InternalBtDevice("My Device", "00:00:00:00:00:00", true),
             InternalBtDevice("Another Device", "00:00:00:00:00:01", true),
             InternalBtDevice("Yet Another Device", "00:00:00:00:00:02", true),
@@ -74,7 +74,7 @@ fun LazyRadioDialogueDisplay() {
     PrivyLociTheme {
         LazyRadioDialogue(
             bleDevices = bleDevices,
-            selectedDevice = bleDevices[0],
+            selectedDevice = bleDevices.first(),
             onDismiss = { println("Dismissed") },
             onclick = { println("Selected $this") }
         )

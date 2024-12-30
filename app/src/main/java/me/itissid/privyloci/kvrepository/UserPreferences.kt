@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -13,40 +14,41 @@ import me.itissid.privyloci.util.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
-import androidx.datastore.preferences.preferencesDataStore
-
 // Per SO Answer: https://arc.net/l/quote/kebwdeqe
-private val Context.privyLociDataStore by preferencesDataStore("user_preferences")
-
+private val Context.privyLociUserPreferencesDataStore by preferencesDataStore("user_preferences")
 
 @Singleton
 class UserPreferences @Inject constructor(
     @ApplicationContext context: Context
 ) {
-    private val dataStore: DataStore<Preferences> = context.privyLociDataStore
+    private val dataStore: DataStore<Preferences> = context.privyLociUserPreferencesDataStore
+    private val datastoreLoggingTag: String = "UserPreferences"
 
+    val userPausedLocationCollection =
+        dataStore.readWrapper(pausedLocationCollectionKey, false, "UserPreferences")
 
-    val userPausedLocationCollection = dataStore.readAsResult(pausedLocationCollectionKey, false)
-
-    val userVisitedPermissionLauncher = dataStore.readAsResult(visitedPermissionLauncher, false)
+    val userVisitedPermissionLauncher =
+        dataStore.readWrapper(visitedPermissionLauncher, false, "UserPreferences")
 
     val userVisitedBlePermissionLauncher =
-        dataStore.readAsResult(visitedBlePermissionLauncher, false)
+        dataStore.readWrapper(visitedBlePermissionLauncher, false, "UserPreferences")
+
 
     companion object {
-        fun <T> DataStore<Preferences>.readAsResult(
+        fun <T> DataStore<Preferences>.readWrapper(
             key: Preferences.Key<T>,
-            defaultValue: T
+            defaultValue: T,
+            loggerTag: String
         ): Flow<T> {
             return this.data
                 .map { preferences ->
                     val result = preferences[key] ?: defaultValue
-                    Logger.v("UserPreferences", "Read $key: $result")
+                    Logger.v(loggerTag, "Read $key: $result")
                     result
                 }
                 .catch { exception ->
                     Logger.e(
-                        "UserPreferences",
+                        loggerTag,
                         "Error reading preferences: Message: `${exception.message}`",
                         exception
                     )
