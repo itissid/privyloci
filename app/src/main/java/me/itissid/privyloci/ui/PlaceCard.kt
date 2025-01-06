@@ -57,7 +57,7 @@ fun PlaceCard(
     btDevices: Set<InternalBtDevice>?,
     bluetoothEnabled: Boolean,
     bluetoothNotEnabledHandler: () -> Unit,
-    onDeviceSelectedForPlaceTag: PlaceTag.(String) -> Unit,
+    onDeviceSelectedForPlaceTag: InternalBtDevice.() -> Unit,
     btDevicesRescanHandler: () -> Unit,
     preSelectedDevice: InternalBtDevice?,
 ) {
@@ -122,10 +122,7 @@ fun PlaceCard(
                                         // in the list of btDevices.
                                         // N2S: We might also reserve selectedDevice with this  placeTag in memory, should that device-placeTag relation be exclusive.
                                         // on recompose we filter btDevices or gray out previously selected device-placeTag pairs.
-                                        onDeviceSelectedForPlaceTag(
-                                            placeTag,
-                                            this.address
-                                        )
+                                        onDeviceSelectedForPlaceTag()
                                         showDialog = false
                                     },
                                 )
@@ -183,7 +180,9 @@ fun LazyRadioDialogue(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp)
                 ) {
-                    items(bleDevices.toList()) { device ->
+                    items(
+                        bleDevices.toList()
+                            .sortedByDescending { device -> device == selectedDevice || device.isConnected }) { device ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -193,7 +192,7 @@ fun LazyRadioDialogue(
                                 }
                         ) {
                             Text(
-                                text = "${if (device.isConnected) "•" else ""}${device.name}",
+                                text = "${if (device.isConnected) "•¶ " else ""}${device.name}",
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                             RadioButton(

@@ -44,7 +44,6 @@ sealed class BlePermissionEvent {
 class BTPermissionRepository @Inject constructor() {
     private val _bluetoothPermissionsGranted = MutableStateFlow(false)
     val bluetoothPermissionsGranted: StateFlow<Boolean> = _bluetoothPermissionsGranted.asStateFlow()
-
     fun updateBluetoothPermissions(granted: Boolean) {
         _bluetoothPermissionsGranted.value = granted
     }

@@ -9,10 +9,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import me.itissid.privyloci.datamodels.PlaceTagDao
 import me.itissid.privyloci.kvrepository.UserPreferences
 import me.itissid.privyloci.kvrepository.Repository
 import me.itissid.privyloci.service.PrivyForegroundService
@@ -52,7 +54,8 @@ data class ForegroundPermissionRationaleState(
 class MainViewModel @Inject constructor(
     application: Application,
     private val userPreferences: UserPreferences,
-    private val repository: Repository
+    private val repository: Repository,
+    placeTagDao: PlaceTagDao,
 ) :
     AndroidViewModel(application) {
 

@@ -32,13 +32,22 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
-            minifyEnabled false
+            minifyEnabled true
             buildConfigField "boolean", "ADD_IF_EMPTY", "false"
             buildConfigField "boolean", "REPLACE_ALWAYS", "false"
             buildConfigField "boolean", "WIPE_DATA", "false"
             buildConfigField "boolean", "LOAD_MOCK_DATA", "false"
             buildConfigField "boolean", "ONBOARDING_HEADPHONES", "false"
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+
+        }
+        proguardTest {
+            initWith debug
+            matchingFallbacks = ['debug']
+            minifyEnabled true // Enable code shrinking
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Optionally, specify signingConfigs if needed
         }
     }
     compileOptions {
@@ -92,7 +101,7 @@ dependencies {
     implementation 'androidx.navigation:navigation-fragment-ktx:2.8.3'
     implementation 'androidx.navigation:navigation-ui-ktx:2.8.1'
     implementation 'androidx.coordinatorlayout:coordinatorlayout:1.2.0'
-    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.google.code.gson:gson:2.11.0'
     implementation 'com.google.android.catalog.framework:casa-annotations:0.5.1'
     implementation 'com.google.accompanist:accompanist-permissions:0.36.0'
     implementation "androidx.room:room-runtime:2.6.1"
