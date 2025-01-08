@@ -54,3 +54,7 @@ app/debug/
 app/proguardTest/
 app/release/
 .vscode
+
+docs/androidx-compose/
+docs/hilt/
+docs/kotlin/

@@ -6,3 +6,178 @@ plugins {
     id 'com.google.dagger.hilt.android' version '2.52' apply false
     id 'com.google.devtools.ksp' version '1.9.25-1.0.20' apply false
 }
+ext {
+    kotlinVer = hasProperty('kotlinVer') ? property('kotlinVer') : '1.9.25'
+    hiltVer = hasProperty('hiltVer') ? property('hiltVer') : '2.52'
+    composeBomVer = hasProperty('composeBomVer') ? property('composeBomVer') : '2024.09.01'
+}
+subprojects {
+    ext {
+        kotlinVer = rootProject.ext.kotlinVer
+        hiltVer = rootProject.ext.hiltVer
+        composeBomVer = rootProject.ext.composeBomVer
+    }
+}
+
+tasks.register("printRootVersions") {
+    doLast {
+        println "Root Project Kotlin Version: ${ext.kotlinVer}"
+        println "Root Project Hilt Version: ${ext.hiltVer}"
+        println "Root Project Compose BOM Version: ${ext.composeBomVer}"
+//        println "Root Project AndroidX Main Branch: ${ext.androidxMainBranch}"
+    }
+}
+
+tasks.register('setupDocsDirs') {
+    outputs.dir new File(rootDir, "docs/kotlin")
+    outputs.dir new File(rootDir, "docs/hilt")
+    outputs.dir new File(rootDir, "docs/androidx-compose")
+
+    doLast {
+        def docsDir = new File("${project.rootDir}/docs")
+        if (!docsDir.exists()) {
+            docsDir.mkdirs()
+        }
+        println "Created docs directory: ${docsDir.absolutePath}"
+
+        // Example subdirectories for each library or framework
+        ['kotlin', 'hilt', 'androidx-compose'].each { sub ->
+            File subDir = new File(docsDir, sub)
+            if (!subDir.exists()) {
+                subDir.mkdirs()
+                println "Created sub-directory: ${subDir.absolutePath}"
+            }
+        }
+    }
+}
+
+tasks.register('downloadDocs', Exec) {
+    dependsOn setupDocsDirs
+    outputs.files(
+            new File(rootDir, "docs/kotlin/kotlin-compiler-${kotlinVer}.zip"),
+            new File(rootDir, "docs/hilt/dagger-${hiltVer}.zip"),
+            new File(rootDir, "docs/androidx-compose/androidx-main.tar.gz")
+    )
+    doFirst {
+        println "Downloading docs/source for Kotlin v${kotlinVer}, " +
+                "Hilt v${hiltVer}, Compose BOM v${composeBomVer}"
+    }
+
+    //   Kotlin doc/archives   -> https://kotlinlang.org/releases.html
+    //   Hilt source code      -> https://github.com/google/dagger
+    //   Jetpack Compose code  -> https://github.com/androidx/androidx
+    workingDir rootDir
+
+    commandLine 'sh', '-c', """
+        set -e
+
+        # Kotlin docs or compiler archive (example: official .zip from GitHub or kotlinlang.org)
+        echo ">>> Downloading Kotlin Compiler (v${kotlinVer})"
+        pwd
+        curl -fSL -o docs/kotlin/kotlin-compiler-${kotlinVer}.zip \\
+            https://github.com/JetBrains/kotlin/releases/download/v${kotlinVer}/kotlin-compiler-${kotlinVer}.zip
+
+        echo ">>> Downloading Hilt Source (v${hiltVer})"
+        curl -fSL -o docs/hilt/dagger-${hiltVer}.zip \\
+            https://github.com/google/dagger/archive/refs/tags/dagger-${hiltVer}.zip
+
+        echo ">>> Downloading AndroidX (Jetpack) Compose Source"
+        # The version-specific tags in the androidx/androidx repo can be tricky,
+        # so here we just clone main or use a tarball from a known commit/branch.
+        # For demonstration, let's do a tar of main:
+        curl -fSL -o docs/androidx-compose/androidx-main.tar.gz \\
+            https://github.com/androidx/androidx/archive/refs/heads/androidx-main.tar.gz
+    """
+}
+
+
+// -- 4. Extract the downloaded archives --
+tasks.register('extractDocs') {
+    dependsOn downloadDocs
+    outputs.dir new File(rootDir, "docs/kotlinc")
+    outputs.dir new File(rootDir, "docs/hilt/dagger-dagger-${hiltVer}.zip")
+    outputs.dir new File(rootDir, "docs/androidx-androidx-main")
+
+    doLast {
+        println "Extracting offline docs/source..."
+
+        def kotlinZip = new File(rootDir, "docs/kotlin/kotlin-compiler-${kotlinVer}.zip")
+        if (kotlinZip.exists()) {
+            // Optional: Verify if the ZIP is valid before extraction
+//            if (ant.zipValidate(src: kotlinZip)) {
+            ant.unzip(src: kotlinZip, dest: new File(rootDir, "docs/kotlin"))
+            println "Extracted Kotlin Compiler."
+//            kotlinZip.delete()
+            println "Deleted Kotlin Compiler archive."
+//            } else {
+//                throw new GradleException("Invalid ZIP archive for Kotlin Compiler: ${kotlinZip.absolutePath}")
+//            }
+        } else {
+            throw new GradleException("Kotlin Compiler zip not found: ${kotlinZip.absolutePath}")
+        }
+
+        // Extract Hilt (Dagger) zip
+        def hiltZip = new File(rootDir, "docs/hilt/dagger-${hiltVer}.zip")
+        if (hiltZip.exists()) {
+//            if (ant.zipValidate(src: hiltZip)) {
+            ant.unzip(src: hiltZip, dest: new File(rootDir, "docs/hilt"))
+            println "Extracted Hilt (Dagger) Source."
+//            hiltZip.delete()
+            println "Deleted Hilt Source archive."
+//            } else {
+//                throw new GradleException("Invalid ZIP archive for Hilt Source: ${hiltZip.absolutePath}")
+//            }
+        } else {
+            throw new GradleException("Hilt Source zip not found: ${hiltZip.absolutePath}")
+        }
+
+        // Extract AndroidX Compose tar.gz
+        def androidxTar = new File(rootDir, "docs/androidx-compose/androidx-main.tar.gz")
+        if (androidxTar.exists()) {
+            // Optionally, validate the tar.gz file here
+            project.exec {
+                commandLine 'sh', '-c', """
+                    cd docs/androidx-compose
+                    tar -xzf androidx-main.tar.gz
+                """
+            }
+            println "Extracted AndroidX Compose Source."
+//            androidxTar.delete()
+            println "Deleted AndroidX Compose tar.gz archive."
+        } else {
+            throw new GradleException("AndroidX Compose tar.gz not found: ${androidxTar.absolutePath}")
+        }
+
+        println "Extraction complete!"
+    }
+}
+
+// -- 5. Verify and list the offline docs directories --
+tasks.register('verifyDocs') {
+    dependsOn extractDocs
+    doLast {
+        println "Verifying offline docs presence by listing directories..."
+        project.exec {
+            commandLine 'sh', '-c', """
+                echo "Contents of docs/kotlin:"
+                tree -L 2 docs/kotlin
+
+                echo "\\nContents of docs/hilt:"
+                tree -L 2 docs/hilt
+
+                echo "\\nContents of docs/androidx-compose:"
+                tree -L 2 docs/androidx-compose
+            """
+        }
+    }
+}
+
+// -- Helper Task: run everything in one go --
+tasks.register('offlineDocs') {
+    group = "Documentation"
+    description = "Sets up directories, downloads, extracts, and verifies offline docs."
+    dependsOn verifyDocs
+    doLast {
+        println "Offline docs setup completed successfully!"
+    }
+}
