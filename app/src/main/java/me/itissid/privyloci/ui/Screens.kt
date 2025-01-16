@@ -93,6 +93,13 @@ fun HomeScreen(
     }
 }
 
+data class OnboardingInternalBTDeviceTracker(
+    val internalBtDevice: InternalBtDevice,
+    val version: Long = System.currentTimeMillis()
+
+)
+
+
 @Composable
 fun PlacesAndAssetsScreen(
     places: List<PlaceTag>,
@@ -115,12 +122,12 @@ fun PlacesAndAssetsScreen(
 
 
     // State to track the selected device and whether we are waiting for connection
-    var waitingForConnection by remember { mutableStateOf<InternalBtDevice?>(null) }
+    var waitingForConnection by remember { mutableStateOf<OnboardingInternalBTDeviceTracker?>(null) }
 
     if (waitingForConnection != null && experimentOn) {
-        if (waitingForConnection?.isConnected == true) {
+        if (waitingForConnection?.internalBtDevice?.isConnected == false) {
             OnboardingWaitDialog(
-                deviceName = waitingForConnection?.name ?: "Your Device",
+                deviceName = waitingForConnection?.internalBtDevice?.name ?: "Your Device",
                 onDismiss = { waitingForConnection = null }
             )
         } else {
@@ -186,6 +193,19 @@ fun PlacesAndAssetsScreen(
                 }
             val bleDeviceStatus = bleViewModel.bleDevices.collectAsState().value
 
+            // For onboarding flow
+            if (bleDeviceStatus is BTDevicesStatus.BTDevicesFound) {
+                val device =
+                    bleDeviceStatus.devices.find { it == waitingForConnection?.internalBtDevice }
+
+                if (device != null && waitingForConnection != null) {
+                    if (waitingForConnection?.internalBtDevice?.isConnected != device.isConnected) {
+                        waitingForConnection =
+                            OnboardingInternalBTDeviceTracker(device, System.currentTimeMillis())
+                    }
+                }
+            }
+
             val bleDevices =
                 if (bleDeviceStatus is BTDevicesStatus.BTDevicesFound) {
                     bleDeviceStatus.devices
@@ -205,7 +225,10 @@ fun PlacesAndAssetsScreen(
                     val selectedDevice = bleDevices?.firstOrNull { it.address == selectedAddress }
                     if (selectedDevice != null) {
                         Logger.v("PlacesAndAssetsScreen", "Device $selectedDevice is selected")
-                        waitingForConnection = selectedDevice
+                        waitingForConnection = OnboardingInternalBTDeviceTracker(
+                            selectedDevice,
+                            System.currentTimeMillis()
+                        )
                     }
                 } // else
             }
@@ -220,7 +243,7 @@ fun PlacesAndAssetsScreen(
         }
     }
     LaunchedEffect(waitingForConnection) {
-        if (waitingForConnection != null && waitingForConnection!!.isConnected) {
+        if (waitingForConnection != null && waitingForConnection?.internalBtDevice?.isConnected == true) {
 
             Logger.v("PlacesAndAssetsScreen", "Device $waitingForConnection is connected")
             // Onboarding success: user put on their headphones

@@ -18,7 +18,6 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Parcelable
 import androidx.annotation.RequiresPermission
-import androidx.compose.runtime.Immutable
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -28,12 +27,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.datamodels.InternalBtDevice
 import me.itissid.privyloci.datamodels.PlaceTag
@@ -43,7 +40,6 @@ import me.itissid.privyloci.datamodels.toEntity
 import me.itissid.privyloci.util.BTDevicesRepository
 import me.itissid.privyloci.util.Logger
 import me.itissid.privyloci.viewmodels.InternalBTProfile.Companion.profileOf
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 
@@ -65,7 +61,10 @@ sealed class PlaceTagsWithDevicesState {
     data object BtNotEnabled : PlaceTagsWithDevicesState()
     data object BTDevicesNotFound : PlaceTagsWithDevicesState()
     data object Loading : PlaceTagsWithDevicesState()
-    data class Success(val placeTagsWithDevices: List<Pair<PlaceTag, InternalBtDevice?>>) :
+    data class Success(
+        val placeTagsWithDevices: List<Pair<PlaceTag, InternalBtDevice?>>,
+        val version: Long = System.currentTimeMillis()
+    ) :
         PlaceTagsWithDevicesState()
 }
 
@@ -73,7 +72,10 @@ sealed class BTDevicesStatus {
     data object Loading : BTDevicesStatus()
     data object NoPermissionGranted : BTDevicesStatus()
     data object BtNotEnabled : BTDevicesStatus()
-    data class BTDevicesFound(val devices: Set<InternalBtDevice>) : BTDevicesStatus()
+    data class BTDevicesFound(
+        val devices: Set<InternalBtDevice>,
+        val version: Long = System.currentTimeMillis()
+    ) : BTDevicesStatus()
 }
 
 @HiltViewModel
@@ -99,10 +101,13 @@ class BleDevicesViewModel @Inject constructor(
     private val isBluetoothEnabled: StateFlow<Boolean> = _isBluetoothEnabled.asStateFlow()
 
 
-    data class BTDeviceWrapper(val devices: Set<InternalBtDevice>)
+    private data class BTDeviceWrapper(
+        val devices: Set<InternalBtDevice>,
+        val version: Long = System.currentTimeMillis()
+    )
 
-    private var _bleDevicesAlt = MutableStateFlow(BTDeviceWrapper(mutableSetOf()))
-    private val _bleDevices = MutableStateFlow<Set<InternalBtDevice>>(mutableSetOf())
+    private val _bleDevices =
+        MutableStateFlow(BTDeviceWrapper(emptySet()))
 
     val bleDevices: StateFlow<BTDevicesStatus> = combine(
         isBluetoothEnabled,
@@ -112,12 +117,12 @@ class BleDevicesViewModel @Inject constructor(
         when {
             !granted -> BTDevicesStatus.NoPermissionGranted
             !enabled -> BTDevicesStatus.BtNotEnabled
-            /*(granted && enabled) && */  devices.isEmpty() -> BTDevicesStatus.Loading
+            /*(granted && enabled) && */  devices.devices.isEmpty() -> BTDevicesStatus.Loading
             else -> {
 //                Logger.v(
 //                    "BleDevicesViewModel::StateFLow",
 //                    "Devices:" + devices.joinToString { it.name + " : " + "(Conn?: ${it.isConnected}, HiFi?: ${it.hasHighDefinitionAudioCapabilities})" })
-                BTDevicesStatus.BTDevicesFound(devices)
+                BTDevicesStatus.BTDevicesFound(devices.devices)
             }
         }
     }.stateIn(
@@ -200,9 +205,9 @@ class BleDevicesViewModel @Inject constructor(
 
         Logger.v(
             "BLEDevices",
-            "Before:" + _bleDevices.value.joinToString { it.name + " : " + "(Conn?: ${it.isConnected}, HiFi?: ${it.hasHighDefinitionAudioCapabilities})" })
+            "Before:" + _bleDevices.value.devices.joinToString { it.name + " : " + "(Conn?: ${it.isConnected}, HiFi?: ${it.hasHighDefinitionAudioCapabilities})" })
 
-        val storedDevices = _bleDevices.value.toMutableSet()
+        val storedDevices = _bleDevices.value.devices.toMutableSet()
         connectedDevices.filterNotNull().filter { device ->
             val noName = device.name.isNullOrEmpty()
             if (noName) {
@@ -232,10 +237,10 @@ class BleDevicesViewModel @Inject constructor(
 //        Logger.v(
 //            "BLEDevices",
 //            "After(1):" + storedDevices.joinToString { it.name + " : " + "(Conn?: ${it.isConnected}, HiFi?: ${it.hasHighDefinitionAudioCapabilities})" })
-        // Because InternalBtDevice has equals and hashCode only on the other two fields we have to
-        // reset it using this hack
-        _bleDevices.value = emptySet()
-        _bleDevices.value = storedDevices.toSet()
+        _bleDevices.value = BTDeviceWrapper(
+            devices = storedDevices.toSet(),
+            version = System.currentTimeMillis()
+        )
 //        Logger.v(
 //            "BLEDevices",
 //            "After(2):" + _bleDevices.value.joinToString { it.name + " : " + "(Conn?: ${it.isConnected}, HiFi?: ${it.hasHighDefinitionAudioCapabilities})" })
@@ -318,20 +323,20 @@ class BleDevicesViewModel @Inject constructor(
     @SuppressLint("MissingPermission")
     private fun updateConnectedDevice(device: BluetoothDevice, isConnected: Boolean) {
         if (device.name != null && device.address != null) {
-            var internalDevice = InternalBtDevice(device.name, device.address, isConnected)
-            val removedDevice = _bleDevices.value.find { internalDevice == it }
+            var internalDevice = InternalBtDevice(device.name, device.address, false)
+            val foundDevice = _bleDevices.value.devices.find { internalDevice == it }
 
-            if (removedDevice != null) {
-//                Logger.v("BleDevicesViewModel", "Updating device with connected flag to: $isConnected")
-                removeDevice(removedDevice)
-//                Logger.v("BleDevicesViewModel", "Removed device ${device.name} ${device.address}")
+            if (foundDevice != null) {
                 internalDevice = InternalBtDevice(
                     device.name,
                     device.address,
                     isConnected,
-                    removedDevice.hasHighDefinitionAudioCapabilities
+                    foundDevice.hasHighDefinitionAudioCapabilities
                 )
-                addDevice(internalDevice)
+                _bleDevices.value = BTDeviceWrapper(
+                    devices = (_bleDevices.value.devices - internalDevice) + internalDevice,
+                    version = System.currentTimeMillis()
+                )
             } else {
                 Logger.w(
                     "BleDevicesViewModel",
@@ -339,15 +344,6 @@ class BleDevicesViewModel @Inject constructor(
                 )
             }
         }
-
-    }
-
-    private fun removeDevice(device: InternalBtDevice) {
-        _bleDevices.value -= device
-    }
-
-    private fun addDevice(device: InternalBtDevice) {
-        _bleDevices.value += device
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -392,7 +388,7 @@ class BleDevicesViewModel @Inject constructor(
     suspend fun loadBondedBleDevices() {
         // Initialize the list we know about.
         if (isConnectPermissionGranted()) {
-            Logger.v(javaClass.simpleName, "Num Devices in cache ${_bleDevices.value.size}")
+            Logger.v(javaClass.simpleName, "Num Devices in cache ${_bleDevices.value.devices.size}")
             val bonded = bluetoothAdapter.bondedDevices ?: emptySet()
             val btDevices = mutableSetOf<InternalBtDevice>()
             for (device in bonded) {
@@ -408,19 +404,22 @@ class BleDevicesViewModel @Inject constructor(
                         )
                     )
 
-                    if (!_bleDevices.value.contains(internalDevice)) {
+                    if (!_bleDevices.value.devices.contains(internalDevice)) {
                         btDevices.add(internalDevice)
                     }
                 }
             }
             if (btDevices.size > 0) {
-                _bleDevices.value += btDevices
+                _bleDevices.value = BTDeviceWrapper(
+                    devices = btDevices,
+                    version = System.currentTimeMillis()
+                )
                 Logger.v(
                     "BleDevicesViewModel",
                     " ${bonded.size} Bonded BLE devices found. We added  ${btDevices.size}  devices and added them"
                 )
             }
-            Logger.v(javaClass.simpleName, "Num devices: ${_bleDevices.value.size}")
+            Logger.v(javaClass.simpleName, "Num devices: ${_bleDevices.value.devices.size}")
         } else {
             Logger.w(
                 "BleDevicesViewModel",
@@ -436,7 +435,7 @@ class BleDevicesViewModel @Inject constructor(
 
     private fun clearBondedDevices() {
         Logger.v("BleDevicesViewModel", "Clearing bonded devices")
-        _bleDevices.value = setOf()
+        _bleDevices.value = BTDeviceWrapper(emptySet(), System.currentTimeMillis())
     }
 
     private fun clearProxy() {
@@ -471,12 +470,12 @@ class BleDevicesViewModel @Inject constructor(
             !anyPlaceIsBTType -> PlaceTagsWithDevicesState.NoPlaceHasBTType
             !isPermGranted -> PlaceTagsWithDevicesState.PermissionNotGranted
             isPermGranted && !isEnabled -> PlaceTagsWithDevicesState.BtNotEnabled
-            /*isPermGranted && isEnabled == true*/ (bleDevices.isEmpty()) -> PlaceTagsWithDevicesState.BTDevicesNotFound
+            /*isPermGranted && isEnabled == true*/ (bleDevices.devices.isEmpty()) -> PlaceTagsWithDevicesState.BTDevicesNotFound
             else -> PlaceTagsWithDevicesState.Success(
                 places.filter { it.isTypeBLE() }.map { placeTag ->
                     val selectedAddress = placeTag.getSelectedDeviceAddress()
                     val selectedDevice =
-                        bleDevices.firstOrNull { it.address.lowercase() == selectedAddress?.lowercase() }
+                        bleDevices.devices.firstOrNull { it.address.lowercase() == selectedAddress?.lowercase() }
                     placeTag to selectedDevice
                 }/*.also { it ->
                     Logger.v(
