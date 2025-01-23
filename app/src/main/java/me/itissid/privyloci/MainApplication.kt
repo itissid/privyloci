@@ -44,7 +44,7 @@ class MainApplication : Application() {
     }
 
     private fun setDebugExperimentFlags() {
-        // TODO: experiement to do this async.
+        // TODO: do this async.
         runBlocking {
             if (BuildConfig.ONBOARDING_HEADPHONES) {
                 experimentsPreferencesManager.setExperimentFlag(true)

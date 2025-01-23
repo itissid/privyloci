@@ -23,7 +23,7 @@ fun PlacesCardPreview() {
         val (placesList, assetList, _) = DataProvider.getData()
         val placesAndAssets = placesList + assetList
         val onDeviceSelected =
-            { placeTag: PlaceTag, address: String -> println("Selected $placeTag and $address") }
+            { placeTag: PlaceTag, address: InternalBtDevice -> println("Selected $placeTag and ${address.name}") }
         val bleDevices =
             setOf<InternalBtDevice>(
                 InternalBtDevice("My Device", "00:00:00:00:00:00", false),

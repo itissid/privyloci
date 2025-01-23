@@ -73,6 +73,8 @@ data class PlaceTag(
     fun isTypeBLE(): Boolean =
         this.type is PlaceTagType.ASSET && this.type.isBT
 
+    fun isTypeHeadphone(): Boolean =
+        this.type is PlaceTagType.ASSET.BTHeadphones
     // Retrieve the selected BLE device address if this PlaceTag is BLEHeadphones.
     fun getSelectedDeviceAddress(): String? {
         return when (type) {
@@ -129,7 +131,6 @@ data class DeviceCapabilityEntity(
     @PrimaryKey val address: String,
     val isAudioCapable: Boolean
 )
-
 
 @Serializable
 @Parcelize

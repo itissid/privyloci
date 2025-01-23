@@ -33,11 +33,14 @@ import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.InternalBtDevice
 import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.Subscription
+import me.itissid.privyloci.service.PrivyForegroundService
+import me.itissid.privyloci.service.startPrivyForegroundService
 import me.itissid.privyloci.util.Logger
 import me.itissid.privyloci.viewmodels.BTDevicesStatus
 import me.itissid.privyloci.viewmodels.BleDevicesViewModel
 import me.itissid.privyloci.viewmodels.ExperimentFlagViewModel
 import me.itissid.privyloci.viewmodels.PlaceTagsWithDevicesState
+import kotlin.math.exp
 
 @Composable
 fun HomeScreen(
@@ -117,23 +120,38 @@ fun PlacesAndAssetsScreen(
 
     val experimentFlagViewModel: ExperimentFlagViewModel = hiltViewModel()
     val experimentOn by experimentFlagViewModel.onboardingExperimentOn.collectAsState()
+    val onboardingExperimentComplete by experimentFlagViewModel.onboardingExperimentComplete.collectAsState()
 
-    Logger.v("PlacesAndAssetScreen", "Onboarding experiment is $experimentOn")
+    Logger.v(
+        "PlacesAndAssetScreen",
+        "Onboarding experiment on?: $experimentOn, onboarding complete?: $onboardingExperimentComplete"
+    )
 
 
     // State to track the selected device and whether we are waiting for connection
     var waitingForConnection by remember { mutableStateOf<OnboardingInternalBTDeviceTracker?>(null) }
-
+    // N2S: If we make onboarding a permanent feature, we don't want to re-trigger this.
     if (waitingForConnection != null && experimentOn) {
-        if (waitingForConnection?.internalBtDevice?.isConnected == false) {
-            OnboardingWaitDialog(
-                deviceName = waitingForConnection?.internalBtDevice?.name ?: "Your Device",
-                onDismiss = { waitingForConnection = null }
-            )
+        val waitForConnectionDevice = waitingForConnection!!.internalBtDevice
+        if (!onboardingExperimentComplete) {
+            if (!waitForConnectionDevice.isConnected) {
+                OnboardingWaitDialog(
+                    deviceName = waitForConnectionDevice.name,
+                    onDismiss = { waitingForConnection = null }
+                )
+            } else {
+                // Device already connected
+                // TODO: Play a media and then wait
+                startPrivyForegroundService(
+                    context,
+                    PrivyForegroundService.ACTION_PLAY_ONBOARDING_SOUND
+                    // putExtra(PrivyForegroundService.EXTRA_DEVICE_ADDRESS, deviceTracker.internalBtDevice.address)
+                )
+                Logger.v("PlacesAndAssetsScreen", "On boarding is not complete")
+            }
         } else {
-            // Device already connected
-            // TODO: Play a media and then wait
-            Logger.v("PlacesAndAssetsScreen", "This should Trigger a media")
+            Logger.i("PlacesAndAssetsScreen", "Onboarding experiment is complete")
+            waitingForConnection = null
         }
     }
 
@@ -193,17 +211,19 @@ fun PlacesAndAssetsScreen(
                 }
             val bleDeviceStatus = bleViewModel.bleDevices.collectAsState().value
 
-            // For onboarding flow
-            if (bleDeviceStatus is BTDevicesStatus.BTDevicesFound) {
+            // Update the state of
+            if (!onboardingExperimentComplete && experimentOn && bleDeviceStatus is BTDevicesStatus.BTDevicesFound) {
                 val device =
                     bleDeviceStatus.devices.find { it == waitingForConnection?.internalBtDevice }
 
-                if (device != null && waitingForConnection != null) {
-                    if (waitingForConnection?.internalBtDevice?.isConnected != device.isConnected) {
-                        waitingForConnection =
-                            OnboardingInternalBTDeviceTracker(device, System.currentTimeMillis())
-                    }
+                if (device != null && waitingForConnection?.internalBtDevice?.isConnected != device.isConnected) {
+                    // At this point the user is in the onboarding flow and selected the device. The onboarding
+                    // dialogue is showing. The user has connected the device or connected/disconnected the device
+                    // connection state of device represented by waitingForConnection has changed.
+                    waitingForConnection =
+                        OnboardingInternalBTDeviceTracker(device, System.currentTimeMillis())
                 }
+
             }
 
             val bleDevices =
@@ -217,20 +237,57 @@ fun PlacesAndAssetsScreen(
                     null
                 }
 
-            val onDeviceSelected = { placeTag: PlaceTag, selectedAddress: String ->
+            val onDeviceSelected = { placeTag: PlaceTag, selectedDevice: InternalBtDevice ->
                 // Also inserts device selection in the place tag in the database.
-                bleViewModel.selectDeviceForPlaceTag(placeTag, selectedAddress)
+                bleViewModel.selectDeviceForPlaceTag(placeTag, selectedDevice.address)
 
-                if (experimentOn && placeTag.isTypeBLE()) {
-                    val selectedDevice = bleDevices?.firstOrNull { it.address == selectedAddress }
-                    if (selectedDevice != null) {
-                        Logger.v("PlacesAndAssetsScreen", "Device $selectedDevice is selected")
-                        waitingForConnection = OnboardingInternalBTDeviceTracker(
-                            selectedDevice,
-                            System.currentTimeMillis()
+                if (!onboardingExperimentComplete && experimentOn && placeTag.isTypeBLE()) {
+                    if (!selectedDevice.hasHighDefinitionAudioCapabilities) {
+                        Logger.i(
+                            "PlacesAndAssetScreen",
+                            "Rejecting ${selectedDevice.name} because it has no audio capabilities"
                         )
+                    } else if (!placeTag.isTypeHeadphone()) {
+                        Logger.i(
+                            "PlacesAndAssetScreen",
+                            "Rejecting ${selectedDevice.name} because it is not created under a headphone type"
+                        )
+                    } else {
+                        val selectedDeviceInModel = bleDevices?.firstOrNull { it == selectedDevice }
+                        if (selectedDeviceInModel != null) {
+                            val hasSelectedDeviceChangedState =
+                                (waitingForConnection?.internalBtDevice != selectedDevice) || (waitingForConnection?.internalBtDevice?.isConnected != selectedDevice.isConnected)
+                            if (waitingForConnection == null || hasSelectedDeviceChangedState) {
+                                // We have not selected this device before and it has a different connection state
+                                Logger.v(
+                                    "PlacesAndAssetsScreen",
+                                    "Device $selectedDeviceInModel will be used for onboarding"
+                                )
+                                // TODO: If we make onboarding permanent we should save the device chosen for onboarding
+                                // this would not make this flow trigger repeatedly
+                                waitingForConnection = OnboardingInternalBTDeviceTracker(
+                                    selectedDeviceInModel,
+                                    System.currentTimeMillis()
+                                )
+                            } else {
+                                Logger.v(
+                                    "PlacesAndAssetScreen",
+                                    "No change to device state for ${selectedDevice.name} for ${placeTag.name}. No onboarding triggered."
+                                )
+                            }
+                        } else {
+                            Logger.w(
+                                "PlacesAndAssetScreen",
+                                "No device found for selected device ${selectedDevice.name}. Possibly a view model bug."
+                            )
+                        }
                     }
-                } // else
+                } else {
+                    Logger.v(
+                        "PlacesAndAssertScreen",
+                        "onboardingExperimentComplete?>: $onboardingExperimentComplete, OnboardingExperiemntOn?: $experimentOn, Asset is BLE type: ${placeTag.isTypeBLE()}"
+                    )
+                }
             }
             PlaceCards(
                 places,
@@ -240,17 +297,6 @@ fun PlacesAndAssetsScreen(
                 selectedDevices = selectedDevices,
                 onDeviceSelectedForPlaceTag = onDeviceSelected
             )
-        }
-    }
-    LaunchedEffect(waitingForConnection) {
-        if (waitingForConnection != null && waitingForConnection?.internalBtDevice?.isConnected == true) {
-
-            Logger.v("PlacesAndAssetsScreen", "Device $waitingForConnection is connected")
-            // Onboarding success: user put on their headphones
-            waitingForConnection = null
-            // Trigger next step: onOnboardingComplete could tell the service to play media
-            // onOnboardingComplete()
-
         }
     }
 }
@@ -280,7 +326,7 @@ fun PlaceCards(
     bluetoothEnabled: Boolean? = null,
     bluetoothNotEnabledHandler: (() -> Unit)? = null,
     selectedDevices: Map<Int, InternalBtDevice?>? = null,
-    onDeviceSelectedForPlaceTag: (PlaceTag.(address: String) -> Unit)? = null,
+    onDeviceSelectedForPlaceTag: (PlaceTag.(device: InternalBtDevice) -> Unit)? = null,
 ) {
     // This map is needed to maintain a list of device choices selected by the user internally.
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
@@ -304,7 +350,7 @@ fun PlaceCards(
                 bluetoothEnabled ?: false,
                 bluetoothNotEnabledHandler = bluetoothNotEnabledHandler ?: {},
                 onDeviceSelectedForPlaceTag = {
-                    onDeviceSelectedForPlaceTag?.invoke(placeTag, address)
+                    onDeviceSelectedForPlaceTag?.invoke(placeTag, this)
                     selectedDevice.value = this
                 },
                 btDevicesRescanHandler = btDevicesRescanHandler ?: {},

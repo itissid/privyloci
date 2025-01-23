@@ -22,15 +22,28 @@ class ExperimentsPreferencesManager @Inject constructor(@ApplicationContext priv
             false,
             "ExperimentsPreferencesManager"
         )
-
+    val headphoneOnboardingExperimentComplete: Flow<Boolean> =
+        dataStore.readWrapper(
+            ONBOARDING_COMPLETE,
+            false,
+            "ExperimentsPreferencesManager"
+        )
     suspend fun setExperimentFlag(value: Boolean) {
         dataStore.edit { prefs ->
             prefs[HEADPHONE_EXPERIMENT_ON_KEY] = value
         }
     }
 
+    suspend fun setOnboadingComplete(value: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[ONBOARDING_COMPLETE] = value
+        }
+    }
+
     companion object {
         private val HEADPHONE_EXPERIMENT_ON_KEY =
             booleanPreferencesKey("headphone_onboarding_experiment_on")
+        private val ONBOARDING_COMPLETE = booleanPreferencesKey("headphone_onboarding_complete")
     }
+
 }

@@ -29,6 +29,7 @@ android {
             buildConfigField "boolean", "LOAD_MOCK_DATA", "true"
             // TODO: Remove this once we get the firebase config together,
             buildConfigField "boolean", "ONBOARDING_HEADPHONES", "true"
+            buildConfigField "boolean", "ONBOARDING_RESET", "true"
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
@@ -91,6 +92,8 @@ dependencies {
 
     // HILT related dependencies
     implementation 'androidx.hilt:hilt-navigation-compose:1.2.0'
+    implementation 'androidx.media3:media3-exoplayer:1.4.0'
+    implementation 'androidx.media3:media3-session:1.4.0'
     ksp 'androidx.hilt:hilt-compiler:1.2.0'
 
     // Dagger - Hilt

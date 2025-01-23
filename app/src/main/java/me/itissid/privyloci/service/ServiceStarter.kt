@@ -8,14 +8,24 @@ import androidx.core.content.ContextCompat
 import me.itissid.privyloci.TAG
 import me.itissid.privyloci.util.Logger
 
-fun stopPrivyForegroundService(context: Context) {
-    val serviceIntent = Intent(context, PrivyForegroundService::class.java)
+const val TAG = "ServiceStarter"
+
+fun stopPrivyForegroundService(context: Context, extraActions: List<Intent> = emptyList()) {
+    val serviceIntent = Intent(context, PrivyForegroundService::class.java).apply {
+        extraActions.forEach {
+            putExtra(it.action, it)
+        }
+    }
     context.stopService(serviceIntent)
 }
 
-fun startPrivyForegroundService(context: Context) {
+fun startPrivyForegroundService(context: Context, action: String? = null) {
     Logger.d(TAG, "Trying to Start foreground service")
-    val serviceIntent = Intent(context, PrivyForegroundService::class.java)
+    val serviceIntent = Intent(context, PrivyForegroundService::class.java).apply {
+        if (action != null) {
+            this.action = action
+        }
+    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         try {
             ContextCompat.startForegroundService(context, serviceIntent)

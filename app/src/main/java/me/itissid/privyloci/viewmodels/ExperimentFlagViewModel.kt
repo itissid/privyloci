@@ -18,7 +18,10 @@ class ExperimentFlagViewModel @Inject constructor(
 
     val onboardingExperimentOn: StateFlow<Boolean> = experimentStore.headPhoneOnboardingExperimentOn
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
-
+    val onboardingExperimentComplete: StateFlow<Boolean> =
+        experimentStore.headphoneOnboardingExperimentComplete.stateIn(
+            viewModelScope, SharingStarted.Lazily, false
+        )
     fun setExperimentFlag(value: Boolean) {
         viewModelScope.launch {
             experimentStore.setExperimentFlag(value)

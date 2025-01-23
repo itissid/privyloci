@@ -8,10 +8,22 @@ import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioAttributes.CONTENT_TYPE_MUSIC
+import android.media.AudioAttributes.USAGE_MEDIA
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSession
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +37,7 @@ import javax.inject.Inject
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.OutOfQuotaPolicy
+import me.itissid.privyloci.kvrepository.ExperimentsPreferencesManager
 import me.itissid.privyloci.kvrepository.UserPreferences
 import me.itissid.privyloci.kvrepository.Repository
 
@@ -43,11 +56,20 @@ class PrivyForegroundService : Service() {
 
     @Inject
     lateinit var repository: Repository
+    val TAG: String = "PrivyForegroundService"
+
+    @Inject
+    lateinit var experimentsManager: ExperimentsPreferencesManager
+
+    // Media playback objects:
+    private var mediaSession: MediaSession? = null
+    private var exoPlayer: ExoPlayer? = null
 
     companion object {
         const val CHANNEL_ID = "PrivyLociForegroundServiceChannel"
         const val ACTION_SERVICE_STARTED = "me.itissid.privyloci.ACTION_SERVICE_STARTED"
         const val ACTION_SERVICE_STOPPED = "me.itissid.privyloci.ACTION_SERVICE_STOPPED"
+        const val ACTION_PLAY_ONBOARDING_SOUND = "me.itissid.privyloci.action.PLAY_ONBOARDING_SOUND"
     }
 
     override fun onCreate() {
@@ -59,12 +81,167 @@ class PrivyForegroundService : Service() {
         startForegroundServiceWithNotification()
         // Initialize SensorManager
         sensorManager.initialize(this)
+        initMediaSessionAndPlayer()
         // Initialize SubscriptionManager lazily
         CoroutineScope(Dispatchers.IO).launch {
             subscriptionManager.initialize(this@PrivyForegroundService)
             repository.setServiceRunning(true)
+            experimentsManager.headphoneOnboardingExperimentComplete.collect {
+                playedOnboardingSound = it
+            }
         }
     }
+
+    lateinit var handlerThread: HandlerThread
+    lateinit var audioFocusHandler: Handler
+
+    private fun initMediaSessionAndPlayer() {
+        if (mediaSession == null && exoPlayer == null) {
+            exoPlayer = ExoPlayer.Builder(this).build()
+
+            // Create a MediaSession using AndroidX Media3
+            mediaSession = MediaSession.Builder(this, exoPlayer!!)
+                .setSessionActivity(pendingMainActivityIntent())
+                .build()
+
+            Logger.i(TAG, "Media session and ExoPlayer initialized")
+        }
+    }
+
+    private fun pendingMainActivityIntent(): PendingIntent {
+        val notificationIntent = Intent(this, MainActivity::class.java)
+        // Possibly set flags
+        return PendingIntent.getActivity(
+            this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    var playBackDelayed = false
+    var resumeOnFocusGained = false
+    var playedOnboardingSound = false // TODO: make this persistent for different devices.
+    val focusLock = Any()
+    private fun setPlayShortOnboardingSound() {
+        // So that the Looper Thread can continue doing its job.
+        handlerThread = HandlerThread("AudioFocusHandlerThread").apply { start() }
+        val looper = handlerThread.looper
+        audioFocusHandler = Handler(looper)
+
+        // Just hold the focus briefly for the on boarding.
+        val focusResult = requestAudioFocus()
+        synchronized(focusLock) {
+            when (focusResult) {
+                AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
+                    Logger.v(
+                        TAG,
+                        "AUDIOFOCUS_REQUEST_GRANTED. Play Onboarding sound? $playedOnboardingSound"
+                    )
+                    if (!playedOnboardingSound) {
+                        playNow()
+                    }
+                    // N2S do we call experimentManager.setOnboardingComplete here?
+                    playedOnboardingSound = true
+                }
+
+                AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> {
+                    Logger.v(TAG, "AUDIOFOCUS_REQUEST_DELAYED")
+                    playBackDelayed = true
+                }
+            }
+        }
+        // Keep the session around for some time to test with geofencing.
+    }
+
+    private fun playNow() {
+        val player = exoPlayer ?: return
+        val audioUri =
+            Uri.parse("android.resource://${packageName}/${R.raw.privy_loci_headphone_connect}")
+
+        player.setMediaItem(MediaItem.fromUri(audioUri))
+        player.prepare()
+        player.play()
+        CoroutineScope(Dispatchers.IO).launch {
+            experimentsManager.setOnboadingComplete(true)
+        }
+    }
+
+    private fun pausePlayback() {
+        val player = exoPlayer ?: return
+        player.pause()
+    }
+
+    private fun isPlaying(): Boolean {
+        val player = exoPlayer ?: return false
+        return player.isPlaying
+    }
+
+    private val afChangeListener =
+        AudioManager.OnAudioFocusChangeListener { focusChange ->
+            when (focusChange) {
+                AudioManager.AUDIOFOCUS_GAIN -> {
+                    // TODO: When I get the event from a geo fence i will play it here.
+                    synchronized(focusLock) {
+                        if (playBackDelayed || resumeOnFocusGained) {
+                            Logger.v(
+                                TAG,
+                                "AUDIOFOCUS_GAIN, play onboarding sound? $playedOnboardingSound"
+                            )
+                            playBackDelayed = false
+                            if (!playedOnboardingSound) {
+                                playNow()
+                            }
+                            playedOnboardingSound = true
+
+                        } else {
+                            Logger.v(
+                                TAG,
+                                "AUDIOFOCUS_GAIN playBackDelayed? $playBackDelayed, resumeOnFocusGained? $resumeOnFocusGained"
+                            )
+                        }
+                    }
+                }
+
+                AudioManager.AUDIOFOCUS_LOSS -> {
+                    Logger.v(TAG, "AUDIOFOCUS_LOSS, we won't be able to play unless")
+                    playBackDelayed = false
+                    resumeOnFocusGained = false
+                    pausePlayback()
+
+                    // TODO: Create a snackbar notification instead
+                }
+
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                    Logger.v(TAG, "AUDIOFOCUS_LOSS_TRANSIENT")
+                    synchronized(focusLock) {
+                        resumeOnFocusGained = isPlaying()
+                        playBackDelayed = false
+                    }
+                    pausePlayback()
+                    // continue to monitoring for audio focus.
+                }
+
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                    Logger.v(TAG, "AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK")
+                    pausePlayback()
+                    // still continue to monitoring for audio focus.
+                }
+            }
+        }
+
+    private fun requestAudioFocus(): Int {
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val audioFocusRequest =
+            AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
+                setAudioAttributes(AudioAttributes.Builder().run {
+                    setUsage(USAGE_MEDIA)
+                    setContentType(CONTENT_TYPE_MUSIC)
+                    build()
+                })
+                setAcceptsDelayedFocusGain(true)
+                setOnAudioFocusChangeListener(afChangeListener, audioFocusHandler)
+            }.build()
+        return audioManager.requestAudioFocus(audioFocusRequest)
+    }
+
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
@@ -73,8 +250,18 @@ class PrivyForegroundService : Service() {
                 "Called onStartCommand with null intent means the service was previously killed, but was recreated by the system when resources are available."
             )
         }
-        Logger.d(this::class.java.simpleName, "Privy Loci  onStartCommand called")
-        // Handle any intents or actions here if needed
+        Logger.d(
+            this::class.java.simpleName,
+            "Privy Loci onStartCommand called with action ${intent?.action}"
+        )
+        when (intent?.action) {
+            ACTION_PLAY_ONBOARDING_SOUND -> {
+                // request creates an audio request: Like onboarding vs GeofenceEvent etc
+                Logger.v(TAG, "Received request to play onboarding sound")
+                setPlayShortOnboardingSound()
+            }
+            // Add other actions if needed
+        }
 
         // Service is already running, so return START_STICKY to keep it alive.
         return START_STICKY
@@ -84,10 +271,15 @@ class PrivyForegroundService : Service() {
         super.onDestroy()
         Logger.d(this::class.java.simpleName, "Privy Loci Foreground Service destroyed")
 
+
         // Clean up resources
         try {
             sensorManager.shutdown()
             subscriptionManager.shutdown()
+            exoPlayer?.release()
+            exoPlayer = null
+            mediaSession?.release()
+            mediaSession = null
         } catch (e: Exception) {
             Logger.e(
                 this::class.java.simpleName,
@@ -188,35 +380,37 @@ class NotificationDismissedReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context == null || intent == null) return
         when (intent.action) {
-
-        }
-        // Have a viewmodel here set so that
-        Logger.d(
-            "NotificationDismissedReceiver",
-            "Persistent Notification dismissed, stopping FG Service"
-        )
-        context?.let {
-            // N2S: I decided to stop the foreground services en-masse but we could be more sparing.
-            // We can send an intent to stop services that have private data only and let others run.
-            stopPrivyForegroundService(it)
-            CoroutineScope(Dispatchers.IO).launch {
-                // N2S: Will this work if the application context is cached?
-                Logger.v(
+            FG_SERVICE_NOTIFICATION_DISMISSED -> {
+                // Have a viewmodel here set so that
+                Logger.d(
                     "NotificationDismissedReceiver",
-                    "Setting FG Persistent Notification Dismissed"
+                    "Persistent Notification dismissed, stopping FG Service"
                 )
+                context.let {
+                    // N2S: I decided to stop the foreground services en-masse but we could be more sparing.
+                    // We can send an intent to stop services that have private data only and let others run.
+                    stopPrivyForegroundService(it)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        // N2S: Will this work if the application context is cached?
+                        Logger.v(
+                            "NotificationDismissedReceiver",
+                            "Setting FG Persistent Notification Dismissed"
+                        )
 
-                userPreferences.setUserPausedLocationCollection(true)
-                repository.setFGPersistentNotificationDismissed(true)
+                        userPreferences.setUserPausedLocationCollection(true)
+                        repository.setFGPersistentNotificationDismissed(true)
+                    }
+                }
+                // TODO: Also update the user preference that the notification was dismissed.
+                if (context != null) {
+
+                    val workRequest = OneTimeWorkRequestBuilder<ServiceStoppedWorker>()
+                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                        .build()
+                    WorkManager.getInstance(context).enqueue(workRequest)
+                }
             }
-        }
-        // TODO: Also update the user preference that the notification was dismissed.
-        if (context != null) {
 
-            val workRequest = OneTimeWorkRequestBuilder<ServiceStoppedWorker>()
-                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                .build()
-            WorkManager.getInstance(context).enqueue(workRequest)
         }
     }
 }
