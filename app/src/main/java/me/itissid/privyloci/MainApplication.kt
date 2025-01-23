@@ -48,10 +48,12 @@ class MainApplication : Application() {
         runBlocking {
             if (BuildConfig.ONBOARDING_HEADPHONES) {
                 experimentsPreferencesManager.setExperimentFlag(true)
+                if (BuildConfig.ONBOARDING_RESET) {
+                    experimentsPreferencesManager.setOnboadingComplete(false)
+                }
             } else {
                 experimentsPreferencesManager.setExperimentFlag(false)
             }
-
         }
     }
 

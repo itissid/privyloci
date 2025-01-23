@@ -39,6 +39,7 @@ android {
             buildConfigField "boolean", "WIPE_DATA", "false"
             buildConfigField "boolean", "LOAD_MOCK_DATA", "false"
             buildConfigField "boolean", "ONBOARDING_HEADPHONES", "false"
+            buildConfigField "boolean", "ONBOARDING_RESET", "false"
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.debug
 

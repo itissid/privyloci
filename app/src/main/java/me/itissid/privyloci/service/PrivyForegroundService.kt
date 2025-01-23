@@ -24,6 +24,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaStyleNotificationHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -162,6 +163,7 @@ class PrivyForegroundService : Service() {
         CoroutineScope(Dispatchers.IO).launch {
             experimentsManager.setOnboadingComplete(true)
         }
+        updateNotification("Monitoring your subs(onboarding is on)")
     }
 
     private fun pausePlayback() {
@@ -342,7 +344,17 @@ class PrivyForegroundService : Service() {
         }
     }
 
-    private fun createNotification(): Notification {
+    private fun updateNotification(message: String) {
+        val updatedNotification = createNotification(contentText = message)
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(PERSISTENT_FG_NOTIFICATION, updatedNotification)
+    }
+
+    private fun createNotification(
+        title: String = "Privy Loci is running",
+        contentText: String = "Monitoring your subscriptions"
+    ): Notification {
         // Create an intent that will open the MainActivity when the notification is tapped
         val deleteIntent = Intent(this, NotificationDismissedReceiver::class.java).apply {
             action = FG_SERVICE_NOTIFICATION_DISMISSED
@@ -360,8 +372,8 @@ class PrivyForegroundService : Service() {
             .setSmallIcon(R.mipmap.ic_launcher_round) // small icon for the notification
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentTitle("Privy Loci is running")
-            .setContentText("Monitoring your subscriptions")
+            .setContentTitle(title)
+            .setContentText(contentText)
             .setContentIntent(pendingIntent)
             .setDeleteIntent(pendingDeleteIntent)
             .setOngoing(true)
