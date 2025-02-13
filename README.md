@@ -1,4 +1,4 @@
-Privy Loci: A Privacy First Location Inference API
+Privy Loci: A Privacy First Location Inference Idea
 ===================================================
 
 Privy Loci is an proposal for:
@@ -9,13 +9,13 @@ b. Building 3p apps that rely on location data to without sacrificing function.
 
 NOTE: I refer to "location data" to include not just (Lat,long,accuracy) tuple, but also RF: BLE/WiFi data, Pose, Activity Recognition data etc. Privy Loci's demo focuses on the Lat/Long and RF data. 
 
-## TL;DR How does it work?
-It proposes a complete *separation* of the PII and sensitive location data from the *value* that apps add to your life.
+## TL;DR
+It proposes a complete *separation* of the PII and sensitive location data from the *value* that 3p-apps add to your life.
 It is also compatible, due to an open design, to let users and 3p-apps to work across platforms to provide a privacy-first location inference API.  
 To think that the idea is, “well, isn't this just a technical issue like differential privacy or e2e-encryption?” misses the point a bit. While those are valid privacy implementations, one has to think from first principles to solve the real problem, which is deeply rooted in the Location Permission Structure and the designs built on it on major mobile platforms, as I explain below. This is a major concern and can be mitigated for a good number of apps to function while not letting users deal with the worry about privacy of their location data.
 
-# Is it meant to be an App? How can I use it?
-Not exactly. It is an app form for the demo and it can be quite usable -  for example to track assets and set private geofences -  though I would rather see it as being a core service an Infrastructure as a Service(IaaS) on device to enable users and and 3p-apps alike. The demo is for giving you a feel for what the experience is like, but also what trusting a service like this means in real tangible terms for users.
+# Is it meant to be an App/API/Platform/AOSP Service? How can I use it?
+It is an app form for the demo – it can be quite usable –  for example to track assets and set private geofences -  though I would rather see it as being a core service an Infrastructure as a Service(IaaS) on device to enable users and and 3p-apps alike. The demo is for giving you a feel for what the experience is like, but also what trusting a service like this means in real tangible terms for users.
 
 [![*The infamous multi permission launcher for location permissions](./docs/App_MultiPermission_Launcher_Screen_recording_20241210_091435.gif](https://github.com/user-attachments/assets/19fe766d-84b7-48c7-abd5-06247b9315f8)
 
