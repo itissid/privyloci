@@ -1,12 +1,8 @@
 package me.itissid.privyloci
 
-import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -35,45 +31,45 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.compose.NavHost
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
 
 import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.PlaceTag
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.SubscriptionType
 import me.itissid.privyloci.ui.HomeScreen
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.accompanist.permissions.rememberPermissionState
 
-import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.itissid.privyloci.data.DataProvider.processAppContainers
+import me.itissid.privyloci.datamodels.InternalBtDevice
 import me.itissid.privyloci.datamodels.toDomain
 //import me.itissid.privyloci.service.FG_NOTIFICATION_DISMISSED
 import me.itissid.privyloci.service.startPrivyForegroundService
 import me.itissid.privyloci.service.stopPrivyForegroundService
 import me.itissid.privyloci.ui.AdaptiveIcon
 import me.itissid.privyloci.ui.BlePermissionHandler
-import me.itissid.privyloci.ui.LocationPermissionRationaleDialogue
+import me.itissid.privyloci.ui.LocationPermissionHandler
+import me.itissid.privyloci.ui.PlacesAndAssetsScreen
 import me.itissid.privyloci.util.Logger
+import me.itissid.privyloci.viewmodels.BTDevicesStatus
 import me.itissid.privyloci.viewmodels.BleDevicesViewModel
-import me.itissid.privyloci.viewmodels.BlePermissionViewModel
-import me.itissid.privyloci.viewmodels.ForegroundPermissionRationaleState
+import me.itissid.privyloci.viewmodels.BTPermissionViewModel
+import me.itissid.privyloci.viewmodels.LocationPermissionViewModel
+import me.itissid.privyloci.viewmodels.LocationPermissionState
 import me.itissid.privyloci.viewmodels.MainViewModel
-import me.itissid.privyloci.viewmodels.RationaleState
+import me.itissid.privyloci.viewmodels.PlaceTagsWithDevicesState
+import org.maplibre.android.MapLibre
 
 // TODO(Sid): Replace with real data after demo.
 data class MockData(
@@ -93,9 +89,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PrivyLociTheme {
-                MainScreenWrapper(
-                    viewModel = viewModel
-                )
+                MainScreenWrapper(viewModel)
             }
         }
     }
@@ -117,206 +111,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MainScreenWrapper(viewModel: MainViewModel) {
-    val context = LocalContext.current as Activity
-    // Variables for managing location and other sensor permissions.
-    var fgPermissionRationaleState by
-    rememberSaveable { mutableStateOf<ForegroundPermissionRationaleState?>(null) }
-
-    // TODO: Encapsulate the permision code in its own class.
-    // N2S: Ask for background permissions if user wants to not take the foreground permissions route.
-    rememberPermissionState(permission = Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-    val foregroundLocationPermissionState = rememberMultiplePermissionsState(
-        permissions = listOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.POST_NOTIFICATIONS // Add this permission
-        )
-    ) { Logger.v(TAG, it.entries.joinToString(separator = "\n")) }
-
-    val userVisitedPermissionLauncherPreference by
-    viewModel.userVisitedPermissionLauncher.collectAsState()
-
-    val userPausedLocationCollection by
-    viewModel.userPausedLocationCollection.collectAsState()
-
-    // location permission revocation is superflous to previous user setting to stop collection.
-    if (!foregroundLocationPermissionState.allPermissionsGranted) {
-        viewModel.setUserPausedLocationCollection(false)
-        viewModel.setFGPersistentNotificationDismissed(false)
-    }
-
-    val userDismissedFGNotification = remember { mutableStateOf(false) }
-
-    val coroutineScope = rememberCoroutineScope()
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            viewModel.wasFGPersistentNotificationDismissed.collect { result ->
-                userDismissedFGNotification.value = result
-            }
-        }
-    }
-
-    Logger.v(
-        TAG,
-        "userVisitedPermissionLauncherPreference: $userVisitedPermissionLauncherPreference"
-    )
-    Logger.v(
-        TAG,
-        "userPausedLocationCollection: $userPausedLocationCollection"
-    )
-
-    if (!foregroundLocationPermissionState.allPermissionsGranted) {
-        Logger.v(TAG, "PERMISSION NOT GRANTED")
-    } else {
-        Logger.v(TAG, "PERMISSION GRANTED")
-    }
-    if (foregroundLocationPermissionState.shouldShowRationale) {
-        Logger.v(TAG, "SHOULD SHOW RATIONALE")
-    } else {
-        Logger.v(TAG, "SHOULD NOT SHOW RATIONALE")
-    }
-
-    if (fgPermissionRationaleState == null) {
-        Logger.v(
-            TAG,
-            "NULL RATIONALE STATE "
-        )
-    } else {
-        Logger.v(TAG, "RATIONALE STATE: $fgPermissionRationaleState")
-    }
-
-    fgPermissionRationaleState?.let {
-        LocationPermissionRationaleDialogue(
-            onConfirm = {
-                Logger.w(TAG, "Launching multiple permission request from onConfirm")
-                when (it.reason) {
-                    RationaleState.LOCATION_PERMISSION_RATIONALE_SHOULD_BE_SHOWN -> {
-                        try {
-                            foregroundLocationPermissionState.launchMultiplePermissionRequest()
-                            // TODO: At this point  should ALWAYS launch the permissions since the RationaleState is set to this only if shouldShowRationale is true.
-                            //  But testing is needed. Setting this user preference guards against trying to repeatedly launch the permission request, because in android 14 it does nothing.
-                            viewModel.setUserVisitedPermissionLauncherPreference(true) //
-                        } finally {
-                            fgPermissionRationaleState = null
-                        }
-                    }
-
-                    RationaleState.MULTIPLE_PERMISSIONS_SHOULD_BE_LAUNCHED -> {
-                        try {
-                            foregroundLocationPermissionState.launchMultiplePermissionRequest()
-                            viewModel.setUserVisitedPermissionLauncherPreference(true) //
-                        } finally {
-                            fgPermissionRationaleState = null
-                        }
-                    }
-
-                    RationaleState.VISIT_SETTINGS -> {
-                        // Consider doing this in launched effects?
-                        try {
-                            val intent =
-                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = Uri.fromParts("package", context.packageName, null)
-                                }
-                            context.startActivity(intent)
-                        } finally {
-                            fgPermissionRationaleState = null
-                        }
-                    }
-
-                    RationaleState.PAUSE_LOCATION_COLLECTION -> {
-                        // TODO: set the pause flag that shuts down Location collection etc.
-                        try {
-                            viewModel.setUserPausedLocationCollection(true)
-                        } finally {
-                            fgPermissionRationaleState = null
-                        }
-                    }
-
-                    RationaleState.RESUME_LOCATION_COLLECTION -> {
-                        try {
-                            viewModel.setUserPausedLocationCollection(false)
-                            viewModel.setFGPersistentNotificationDismissed(false)
-                        } finally {
-                            fgPermissionRationaleState = null
-                        }
-                    }
-                }
-            },
-            onDismiss = {
-                Logger.v(TAG, "User dismissed the rationale dialogue")
-                fgPermissionRationaleState = null
-            },
-            message = it.rationaleText,
-            proceedText = it.proceedButtonText,
-            dismissText = it.dismissButtonText
-        )
-    }
-
-    // Modify the rationalState in the spirit of the Unidirectional flow model
-    val onLocationIconClick = {
-        if (!foregroundLocationPermissionState.allPermissionsGranted) {
-            if (foregroundLocationPermissionState.shouldShowRationale) {
-                Logger.v(TAG, "Setting rationale state to be shown")
-                fgPermissionRationaleState = ForegroundPermissionRationaleState(
-                    RationaleState.LOCATION_PERMISSION_RATIONALE_SHOULD_BE_SHOWN,
-                    rationaleText = "In order to use PrivyLoci's location features,  please grant access by accepting the location permission dialog."
-                )
-                viewModel.setUserVisitedPermissionLauncherPreference(false) // Remove the user preference since the system is allowing us to show the rationale.
-            } else {
-                if (!userVisitedPermissionLauncherPreference) {// User has not visited permission launcher code.
-                    Logger.v(TAG, "Setting launch flag for multiple permission request")
-                    fgPermissionRationaleState =
-                        ForegroundPermissionRationaleState(
-                            RationaleState.MULTIPLE_PERMISSIONS_SHOULD_BE_LAUNCHED,
-                            rationaleText = "In order to use PrivyLoci's location feature, press 'Proceed' and grant the 'While in Use' location permissions."
-                        )
-
-                } else { //
-                    // Multiple permissions have been launched once. Now the user will always be directed to the settings when clicking this..
-                    Logger.v(TAG, "Setting rationale state to visit settings")
-                    fgPermissionRationaleState =
-                        ForegroundPermissionRationaleState(
-                            RationaleState.VISIT_SETTINGS,
-                            rationaleText = "In order to use PrivyLoci's location features, press 'Proceed', and in the settings and  select 'Allow only while using the app'"
-                        )
-                }
-            }
-        } else {
-            // Granted location permission, we can choose to "pause" the collection of the location data and via a user dialogue. Set a preference flag.
-            // N2S: We can also choose to revoke the FG permissions, but that may make it too difficult for the user to reactivate the buried setting  on Google's flavor of permission for devices.
-            // Alert dialogue to do this
-            if (!userPausedLocationCollection) {
-                fgPermissionRationaleState =
-                    ForegroundPermissionRationaleState(
-                        RationaleState.PAUSE_LOCATION_COLLECTION,
-                        rationaleText = "You can pause App wide location collection by pressing Pause",
-                        proceedButtonText = "Pause",
-                        dismissButtonText = "Dismiss"
-                    )
-            } else {
-                fgPermissionRationaleState =
-                    ForegroundPermissionRationaleState(
-                        RationaleState.RESUME_LOCATION_COLLECTION,
-                        rationaleText = if (userDismissedFGNotification.value) "You dismissed app's location collection notification, resume it by pressing proceed" else "You can resume App wide location collection by pressing proceed.",
-                        proceedButtonText = "Resume",
-                        dismissButtonText = "Dismiss"
-                    )
-            }
-        }
-    }
-
-    /*End logic to deal with Permissions */
-
-    // TODO: Consider using a viewmodel to get the data from the daos. That will keep them from not being re-initialized .
+fun MainScreenWrapper(mainViewModel: MainViewModel) {
+    Logger.v(TAG, "MainScreenWrapperRedo()")
+    // N2S: We don't push this down to SubscriptionCard or PlacesAndAssetScreen
+    // because location permissions will be required
     val database = MainApplication.database
 
     val subscriptionDao = database.subscriptionDao()
     val placeTagDao = database.placeTagDao()
-    // Coro for the win!
+    // Coro for the win: Observe changes don't reevaluate.
     val places by placeTagDao.getAllPlaceTags().map { entities -> entities.map { it.toDomain() } }
         .collectAsState(initial = emptyList())
     val subscriptions by subscriptionDao.getAllSubscriptions().collectAsState(initial = emptyList())
@@ -324,94 +128,178 @@ fun MainScreenWrapper(viewModel: MainViewModel) {
     Logger.v(TAG, "Subscriptions: ${subscriptions.size}")
     val userSubscriptions = subscriptions.filter { it.type == SubscriptionType.USER }
     val appContainers = processAppContainers(subscriptions)
+    val needsLocationPermissions = remember(userSubscriptions, appContainers, places) {
+        // appContainers.any { it.isTypeLocation() } || TODO implement me for 3p apps
+        userSubscriptions.any { it.isTypeLocation() } ||
+                places.any { it.isTypeLocation() }
+    }
+    val needsBLEPermissions = remember(userSubscriptions, appContainers, places) {
+        userSubscriptions.any { it.requiresTypeBLE() } ||
+                places.any { it.isTypeBLE() }
 
+    }
+    var btDevicesRescanHandler: () -> Unit = {}
+    var btPermissionHandler: () -> Unit = {}
+    var btDevicesSelectedHandler: (PlaceTag, InternalBtDevice) -> Unit = { _, _ -> }
+    var locationPermissionHandler: () -> Unit = {}
+    var btDeviceStatus: BTDevicesStatus? = null
+    var locationPermissionState: LocationPermissionState? = null
+    var placeTagsWithSelectedDeviceStatus: PlaceTagsWithDevicesState? = null
+    Logger.i(TAG, "App needsBLEPermissions?: $needsBLEPermissions")
+    if (needsBLEPermissions) {
+        val BTPermissionViewModel: BTPermissionViewModel = hiltViewModel()
+        val blePermissionGranted: Boolean by BTPermissionViewModel.blePermissionGranted.collectAsState()
+        BlePermissionHandler(BTPermissionViewModel)
+        btPermissionHandler = remember(blePermissionGranted) {
+            // made this a remember (see https://chatgpt.com/share/679a6932-6bb8-800c-ad17-a363b04cef36)
+            // because it can reliably re-trigger the recomposition of PlacesAndAssetsScreen
+            // Before this I was passing a blePermissionGranted to PlacesAndAssetScreen
+            {
+                Logger.v(TAG, "BLE Permission icon clicked")
+                BTPermissionViewModel.onBleIconClicked()
+            }
+        }
+        //if (blePermissionGranted) N2S: Had this check withiut it there was a permission exception, but it was adding too much complextity in the uI, handled it
+        // moving the check to the view model in its init {} in BleDevicesViewModel to deal with it more easily.
+        val bleDevicesViewModel: BleDevicesViewModel = hiltViewModel()
+        btDeviceStatus = bleDevicesViewModel.bleDevices.collectAsState().value
+        btDevicesSelectedHandler = { placeTag, selectedDevice ->
+            bleDevicesViewModel.selectDeviceForPlaceTag(
+                placeTag,
+                selectedDevice.address
+            )
+        }
+        placeTagsWithSelectedDeviceStatus =
+            bleDevicesViewModel.placeTagsWithSelectedDevicesState.collectAsState().value
+        Logger.v(TAG, "placeTagsWithSelectedDeviceStatus: $placeTagsWithSelectedDeviceStatus")
+        val coroutineScope = rememberCoroutineScope()
+
+        btDevicesRescanHandler =
+            {
+                coroutineScope.launch {
+                    Logger.v(
+                        "PlacesAndAssetsScreen",
+                        "Loading Bonded devices from rescan handler"
+                    )
+                    // This is on the UI thread main thread.
+                    bleDevicesViewModel.loadBondedBleDevices()
+                }
+                Unit
+            }
+    }
+    Logger.v(TAG, "App needs location permissions? $needsLocationPermissions")
+    if (needsLocationPermissions) {
+        val locationPermissionViewModel: LocationPermissionViewModel = hiltViewModel()
+
+        LocationPermissionHandler(locationPermissionViewModel)
+
+        locationPermissionState =
+            locationPermissionViewModel.locationPermissionState.collectAsState().value
+        locationPermissionHandler = remember(locationPermissionState.permissionsGranted) {
+            {
+                locationPermissionViewModel.mutateLocationCollectionState()
+            }
+        }
+
+    }
+
+
+    Logger.v(TAG, "locationPermissionState: $locationPermissionState")
     MainScreen(
-        appContainers,
-        userSubscriptions,
-        places,
-        (foregroundLocationPermissionState.allPermissionsGranted && !userPausedLocationCollection),
-        onLocationIconClick,
+        appContainers = appContainers, // or real data
+        userSubscriptions = userSubscriptions,
+        places = places,
+        locationPermissionState = locationPermissionState,
+        //        locationPermissionGranted = locationPermissionViewModel.locationPermissionGranted.collectAsState().value,
+        locationPermissionHandler = locationPermissionHandler,
+        btDeviceState = btDeviceStatus,
+        btPermissionHandler = btPermissionHandler,
+        btDevicesRescanHandler = btDevicesRescanHandler,
+        btDevicesSelectedHandler = btDevicesSelectedHandler,
+        placeTagsWithSelectedDeviceStatus = placeTagsWithSelectedDeviceStatus
+    )
+    LaunchPrivyForeGroundService(
+        isRunningFlow = mainViewModel.isServiceRunning,
+        locationPermissionState = locationPermissionState
     )
 
-    if (foregroundLocationPermissionState.allPermissionsGranted) {
-        LaunchPrivyForeGroundService(
-            context,
-            userDismissedFGNotification.value,
-            viewModel.userPausedLocationCollection,
-            viewModel.isServiceRunning
-        )
-    }
 }
 
 @Composable
 fun LaunchPrivyForeGroundService(
-    context: Context,
-    userDismissedForegroundNotification: Boolean,
-    userPausedLocationCollectionStateFlow: StateFlow<Boolean>,
-    isRunningStateFlow: StateFlow<Boolean>
+    isRunningFlow: StateFlow<Boolean>,
+    locationPermissionState: LocationPermissionState?
 ) {
-    val userPausedLocationCollection by
-    userPausedLocationCollectionStateFlow.collectAsState()
-    val isRunning by isRunningStateFlow.collectAsState()
-    Logger.d(
+    if (locationPermissionState == null) {
+        return
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val isRunning by isRunningFlow.collectAsState()
+    val context = LocalContext.current
+    Logger.v(
         TAG,
-        "User dismissed FG notification: $userDismissedForegroundNotification, User paused location collection: $userPausedLocationCollection, isRunning: $isRunning"
+        "LaunchPrivyForeGroundService: isRunning=$isRunning, locationPermissionState=$locationPermissionState"
     )
-    // N2S: If for some reason the service is not launched by LaunchedEffect, if say the user swipes the app up too "quickly".
-    // TODO: Sometimes what happens is that the system tries to restart the service when its closed(I think due to the STICKY option)
-    // When a user intentionally pauses the collection, perhaps it is better not to shutdown the service but instead just stop the sensor collection for it.
-    LaunchedEffect(userPausedLocationCollection, isRunning) {
-
-        if (!userPausedLocationCollection) {
-            if (!isRunning) {
-                Logger.v(TAG, "Attempting to start the FG service.")
-                startPrivyForegroundService(context)
-            } else {
-                Logger.w(
-                    TAG,
-                    "User has not paused location collection but FG service detected running"
-                )
-            }
-        } else { //
-            if (isRunning) {
-                Logger.v(TAG, "Attempting to stop the FG service")
-                stopPrivyForegroundService(context)
-            } else {
-                Logger.w(TAG, "User Paused Location Collection but FG service is not detected")
+    LaunchedEffect(
+        isRunning,
+        locationPermissionState.permissionsGranted,
+        locationPermissionState.isPaused
+    ) {
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            when {
+                !locationPermissionState.permissionsGranted -> stopPrivyForegroundService(context)
+                else -> handleServiceStartStop(isRunning, context, locationPermissionState.isPaused)
             }
         }
     }
 }
 
+private fun handleServiceStartStop(
+    isRunning: Boolean,
+    context: Context,
+    isPaused: Boolean
+) {
+    if (!isPaused) {
+        if (!isRunning) {
+            Logger.v(TAG, "Attempting to start the FG service.")
+            startPrivyForegroundService(context)
+        } else {
+            Logger.w(
+                TAG,
+                "User has not paused location collection but FG service detected running"
+            )
+        }
+    } else { //
+        if (isRunning) {
+            Logger.v(TAG, "Attempting to stop the FG service")
+            stopPrivyForegroundService(context)
+        } else {
+            Logger.w(
+                TAG,
+                "User Paused Location Collection but FG service is not detected"
+            )
+        }
+    }
+}
 @Composable
 fun MainScreen(
     appContainers: List<AppContainer>,
     userSubscriptions: List<Subscription>,
     places: List<PlaceTag>,
-    locationPermissionGranted: Boolean,
-    onLocationIconClick: () -> Unit,
+    locationPermissionState: LocationPermissionState?,
+    locationPermissionHandler: () -> Unit,
+    btPermissionHandler: () -> Unit,
+    btDevicesRescanHandler: () -> Unit,
+    placeTagsWithSelectedDeviceStatus: PlaceTagsWithDevicesState? = null,
+    btDeviceState: BTDevicesStatus? = null,
+    btDevicesSelectedHandler: (PlaceTag, InternalBtDevice) -> Unit,
 ) {
     val navController = rememberNavController()
-    /*N2S: BT permission stuff done here. Don't just yet push this down into the PlacesAndAssetsScreen composable since
-    * Homescreen will also need to use this in the future.
-    * TODO: Remove above note when HomeScreen uses BT Permission granted
-    * */
-    val blePermissionViewModel: BlePermissionViewModel = hiltViewModel()
-    val blePermissionGranted = blePermissionViewModel.blePermissionGranted.collectAsState().value
-    val bleDevicesViewModel: BleDevicesViewModel = hiltViewModel()
-    BlePermissionHandler(blePermissionViewModel)
-
-    var adaptiveIconHandlers = {
-        if (!blePermissionGranted) {
-            blePermissionViewModel.onBleIconClicked()
-        }
-    }
-
     Scaffold(
         topBar = {
             TopBar(
-                locationPermissionGranted = locationPermissionGranted,
-                onLocationIconClick = onLocationIconClick
+                locationPermissionState = locationPermissionState,
+                onLocationIconClick = locationPermissionHandler
             )
         },
         floatingActionButton = {
@@ -430,16 +318,18 @@ fun MainScreen(
                 HomeScreen(
                     appContainers,
                     userSubscriptions,
-                    locationPermissionGranted,
-                    onLocationIconClick
+                    locationPermissionState = locationPermissionState,
+                    locationPermissionHandler
                 )
             }
             composable(NavItem.Places.route) {
                 PlacesAndAssetsScreen(
                     places,
-                    blePermissionGranted,
-                    adaptiveIconHandlers,
-                    bleDevicesViewModel,
+                    btPermissionHandler,
+                    btDevicesRescanHandler,
+                    placeTagsWithSelectedDeviceStatus,
+                    btDevicesSelectedHandler,
+                    btDeviceState,
                 )
             }
         }
@@ -450,14 +340,17 @@ fun MainScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
-    locationPermissionGranted: Boolean = false,
+    locationPermissionState: LocationPermissionState?,
     onLocationIconClick: () -> Unit
 ) {
+    Logger.v("TopBar", "locationPermissionState = ${locationPermissionState?.permissionsGranted}")
+    val locationPermissionIsGoodState =
+        locationPermissionState == null || (locationPermissionState.permissionsGranted && !locationPermissionState.isPaused)
     TopAppBar(
         title = { Text("Privy Loci") },
         actions = {
                 IconButton(onClick = onLocationIconClick) {
-                    AdaptiveIcon(locationPermissionGranted = locationPermissionGranted)
+                    AdaptiveIcon(locationPermissionGranted = locationPermissionIsGoodState)
                 }
                 Icon(Icons.Filled.Menu, contentDescription = "Menu")
         }

@@ -15,7 +15,7 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class BlePermissionViewModelTest : BaseViewModelTest() {
+class BTPermissionViewModelTest : BaseViewModelTest() {
 
     // Mock dependencies
     private lateinit var userPreferences: UserPreferences
@@ -23,7 +23,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
     private lateinit var application: Application
 
     // System Under Test
-    private lateinit var viewModel: BlePermissionViewModel
+    private lateinit var viewModel: BTPermissionViewModel
 
     private val blePermissionsFlow = MutableStateFlow(false)
 
@@ -42,7 +42,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
 
 
         // Initialize ViewModel with mocked dependencies
-        viewModel = BlePermissionViewModel(
+        viewModel = BTPermissionViewModel(
             application = application,
             userPreferences = userPreferences,
             btPermissionRepository = BTPermissionRepository
@@ -55,7 +55,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
         every { userPreferences.userVisitedBlePermissionLauncher } returns flowOf(false)
 
         // Re-initialize ViewModel to apply new mocks
-        viewModel = BlePermissionViewModel(
+        viewModel = BTPermissionViewModel(
             application = application,
             userPreferences = userPreferences,
             btPermissionRepository = BTPermissionRepository
@@ -88,7 +88,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
         every { userPreferences.userVisitedBlePermissionLauncher } returns flowOf(false)
 
         // Re-initialize ViewModel with new mocks
-        viewModel = BlePermissionViewModel(
+        viewModel = BTPermissionViewModel(
             application = application,
             userPreferences = userPreferences,
             btPermissionRepository = BTPermissionRepository
@@ -116,7 +116,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
         every { userPreferences.userVisitedBlePermissionLauncher } returns flowOf(false)
 
         // Re-initialize ViewModel with new mocks
-        viewModel = BlePermissionViewModel(
+        viewModel = BTPermissionViewModel(
             application = application,
             userPreferences = userPreferences,
             btPermissionRepository = BTPermissionRepository
@@ -155,7 +155,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
         every { userPreferences.userVisitedBlePermissionLauncher } returns flowOf(true)
 
         // Re-initialize ViewModel with new mocks
-        viewModel = BlePermissionViewModel(
+        viewModel = BTPermissionViewModel(
             application = application,
             userPreferences = userPreferences,
             btPermissionRepository = BTPermissionRepository
@@ -192,7 +192,7 @@ class BlePermissionViewModelTest : BaseViewModelTest() {
             every { userPreferences.userVisitedBlePermissionLauncher } returns flowOf(false)
 
             // Re-initialize ViewModel with new mocks
-            viewModel = BlePermissionViewModel(
+            viewModel = BTPermissionViewModel(
                 application = application,
                 userPreferences = userPreferences,
                 btPermissionRepository = BTPermissionRepository

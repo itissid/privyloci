@@ -13,12 +13,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.accompanist.permissions.rememberPermissionState
 import me.itissid.privyloci.util.Logger
 import me.itissid.privyloci.viewmodels.BlePermissionEvent
-import me.itissid.privyloci.viewmodels.BlePermissionViewModel
+import me.itissid.privyloci.viewmodels.BTPermissionViewModel
 
 /**
  *  Ideally we would only need the view model and the UI.
@@ -27,7 +25,7 @@ import me.itissid.privyloci.viewmodels.BlePermissionViewModel
  * */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun BlePermissionHandler(bleViewModel: BlePermissionViewModel) {
+fun BlePermissionHandler(bleViewModel: BTPermissionViewModel) {
     val context = LocalContext.current
     val blePermissionState =
         rememberMultiplePermissionsState(

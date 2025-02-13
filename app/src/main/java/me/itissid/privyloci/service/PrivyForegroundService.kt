@@ -1,5 +1,6 @@
 package me.itissid.privyloci.service
 
+import android.Manifest
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.NotificationManager
@@ -8,6 +9,7 @@ import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.AudioAttributes.CONTENT_TYPE_MUSIC
 import android.media.AudioAttributes.USAGE_MEDIA
@@ -20,6 +22,7 @@ import android.os.HandlerThread
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
@@ -75,17 +78,26 @@ class PrivyForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        if (!hasLocationPermission()) {
+            Logger.e(
+                this::class.java.simpleName,
+                "In onCreate No location permission granted. Not starting service"
+            )
+            return
+        }
         Logger.d(this::class.java.simpleName, "In onCreate Privy Loci Foreground Service")
 
         // Start the foreground service with notification
-        // recheck permissions here
+        // TODO: recheck permissions here
         startForegroundServiceWithNotification()
+
         // Initialize SensorManager
         sensorManager.initialize(this)
         initMediaSessionAndPlayer()
         // Initialize SubscriptionManager lazily
         CoroutineScope(Dispatchers.IO).launch {
             subscriptionManager.initialize(this@PrivyForegroundService)
+            Logger.v(TAG, "SubscriptionManager initialized, setting service to be running")
             repository.setServiceRunning(true)
             experimentsManager.headphoneOnboardingExperimentComplete.collect {
                 playedOnboardingSound = it
@@ -117,10 +129,10 @@ class PrivyForegroundService : Service() {
         )
     }
 
-    var playBackDelayed = false
-    var resumeOnFocusGained = false
-    var playedOnboardingSound = false // TODO: make this persistent for different devices.
-    val focusLock = Any()
+    private var playBackDelayed = false
+    private var resumeOnFocusGained = false
+    private var playedOnboardingSound = false // TODO: make this persistent for different devices.
+    private val focusLock = Any()
     private fun setPlayShortOnboardingSound() {
         // So that the Looper Thread can continue doing its job.
         handlerThread = HandlerThread("AudioFocusHandlerThread").apply { start() }
@@ -246,6 +258,12 @@ class PrivyForegroundService : Service() {
 
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!hasLocationPermission()) {
+            Logger.e(TAG, "No location permission. Stopping service.")
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         if (intent == null) {
             Logger.i(
                 this::class.java.simpleName,
@@ -267,6 +285,17 @@ class PrivyForegroundService : Service() {
 
         // Service is already running, so return START_STICKY to keep it alive.
         return START_STICKY
+    }
+
+    private fun hasLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     override fun onDestroy() {
@@ -292,6 +321,7 @@ class PrivyForegroundService : Service() {
             // N2S: We just know that the service was started or stopped, it could be by the system/user.
             // For explicit user stop I use the NotificationDismissedReceiver
             CoroutineScope(Dispatchers.IO).launch {
+                Logger.v(TAG, ":: Service stopped by user or system")
                 repository.setServiceRunning(false)
             }
         }

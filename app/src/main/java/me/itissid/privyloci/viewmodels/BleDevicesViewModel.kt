@@ -292,13 +292,24 @@ class BleDevicesViewModel @Inject constructor(
     }
 
     init {
+        viewModelScope.launch {
+            btPermissionRepository.bluetoothPermissionsGranted.collect { granted ->
+                Logger.v(TAG, "BLE Permission granted?: $granted")
+                // This check protects the app freom 
+                if (granted) {
+                    initialize()
+                } //else
+            }
+        }
+    }
+
+    private suspend fun initialize() {
         val filter = IntentFilter().apply {
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
             addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
         }
         application.registerReceiver(btStateReceiver, filter)
-        viewModelScope.launch {
             isBluetoothEnabled.collect { isEnabled ->
                 if (isEnabled) {
                     Logger.v("$TAG[init.isBluetoothEnabled.collect]", "Bluetooth is enabled")
@@ -309,14 +320,6 @@ class BleDevicesViewModel @Inject constructor(
                     clearBondedAndConnectedDeviceCache()
                 }
             }
-        }
-//        viewModelScope.launch {
-//            _bleDevices.asSharedFlow().collect { devices ->
-//                val msg =
-//                    devices.joinToString { it.name + " : " + "(Conn?: ${it.isConnected}, HiFi?: ${it.hasHighDefinitionAudioCapabilities})" }
-//                Logger.v("BLEDevicesViewModel", "ALT DEVICE CHANGED: $msg")
-//            }
-//        }
     }
 
     // Remove a device from the connected set
@@ -343,21 +346,6 @@ class BleDevicesViewModel @Inject constructor(
                     "Failed to remove a connected device ${device.name} ${device.address}"
                 )
             }
-        }
-    }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    private fun BluetoothDevice.whichType(): String {
-        return if (isConnectPermissionGranted()) {
-            when (type) {
-                BluetoothDevice.DEVICE_TYPE_CLASSIC -> "Classic"
-                BluetoothDevice.DEVICE_TYPE_LE -> "BLE"
-                BluetoothDevice.DEVICE_TYPE_DUAL -> "Dual"
-                BluetoothDevice.DEVICE_TYPE_UNKNOWN -> "Unknown"
-                else -> "Unknown"
-            }
-        } else {
-            "Unknown"
         }
     }
 

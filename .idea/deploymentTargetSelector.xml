@@ -15,7 +15,7 @@
       </SelectionState>
       <SelectionState runConfigName="PrivyLociDebug">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-09-13T15:30:45.927904Z">
+        <DropdownSelection timestamp="2025-01-28T04:07:21.670410Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=29071FDH300966" />

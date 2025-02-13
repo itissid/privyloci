@@ -84,6 +84,8 @@ data class PlaceTag(
             }
         }
     }
+    fun isTypeLocation(): Boolean =
+        this.type is PlaceTagType.PLACE
 
     // Return a copy of this PlaceTag with the updated device address in metadata.
     // This is only meaningful if the type is BLE/BT; otherwise, we do nothing special.
@@ -172,6 +174,10 @@ data class Subscription(
         } else {
             "User Subscription"
         }
+    }
+
+    fun requiresTypeBLE(): Boolean {
+        return eventType == EventType.TRACK_BLE_ASSET_NEARBY || eventType == EventType.TRACK_BLE_ASSET_DISCONNECTED
     }
 }
 

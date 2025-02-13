@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.ContextCompat
-import me.itissid.privyloci.TAG
 import me.itissid.privyloci.util.Logger
 
 const val TAG = "ServiceStarter"

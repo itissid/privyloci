@@ -15,20 +15,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.launch
 import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.InternalBtDevice
 import me.itissid.privyloci.datamodels.PlaceTag
@@ -37,16 +34,15 @@ import me.itissid.privyloci.service.PrivyForegroundService
 import me.itissid.privyloci.service.startPrivyForegroundService
 import me.itissid.privyloci.util.Logger
 import me.itissid.privyloci.viewmodels.BTDevicesStatus
-import me.itissid.privyloci.viewmodels.BleDevicesViewModel
 import me.itissid.privyloci.viewmodels.ExperimentFlagViewModel
+import me.itissid.privyloci.viewmodels.LocationPermissionState
 import me.itissid.privyloci.viewmodels.PlaceTagsWithDevicesState
-import kotlin.math.exp
 
 @Composable
 fun HomeScreen(
     appContainers: List<AppContainer>,
     userSubscriptions: List<Subscription>,
-    locationPermissionGranted: Boolean,
+    locationPermissionState: LocationPermissionState?,
     onLocationIconClick: () -> Unit
 ) {
     // Remember the expanded state for each app
@@ -73,7 +69,7 @@ fun HomeScreen(
                     // Toggle expansion state
                     expandedStateMap[appContainer.name] = !isExpanded
                 },
-                locationPermissionGranted = locationPermissionGranted,
+                locationPermissionState = locationPermissionState,
                 onLocationIconClick = onLocationIconClick
             )
         }
@@ -89,7 +85,7 @@ fun HomeScreen(
         items(userSubscriptions) { subscription ->
             SubscriptionCard(
                 subscription = subscription,
-                locationPermissionGranted = locationPermissionGranted,
+                locationPermissionState = locationPermissionState,
                 onLocationIconClick = onLocationIconClick,
             )
         }
@@ -99,16 +95,16 @@ fun HomeScreen(
 data class OnboardingInternalBTDeviceTracker(
     val internalBtDevice: InternalBtDevice,
     val version: Long = System.currentTimeMillis()
-
 )
-
 
 @Composable
 fun PlacesAndAssetsScreen(
     places: List<PlaceTag>,
-    blePermissionGranted: Boolean,
     noPermissionUIHandler: () -> Unit,
-    bleViewModel: BleDevicesViewModel,
+    btDevicesRescanHandler: () -> Unit,
+    placeTagsWithSelectedDeviceStatus: PlaceTagsWithDevicesState?,
+    onBTDeviceSelectedHandler: (PlaceTag, InternalBtDevice) -> Unit,
+    btDeviceStatus: BTDevicesStatus?
 ) {
     if (places.isEmpty()) {
         // So much empty!
@@ -116,7 +112,6 @@ fun PlacesAndAssetsScreen(
         return
     }
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     val experimentFlagViewModel: ExperimentFlagViewModel = hiltViewModel()
     val experimentOn by experimentFlagViewModel.onboardingExperimentOn.collectAsState()
@@ -129,19 +124,23 @@ fun PlacesAndAssetsScreen(
 
 
     // State to track the selected device and whether we are waiting for connection
-    var waitingForConnection by remember { mutableStateOf<OnboardingInternalBTDeviceTracker?>(null) }
+    var onboardingDeviceWaitingForConnection by remember {
+        mutableStateOf<OnboardingInternalBTDeviceTracker?>(
+            null
+        )
+    }
     // N2S: If we make onboarding a permanent feature, we don't want to re-trigger this.
-    if (waitingForConnection != null && experimentOn) {
-        val waitForConnectionDevice = waitingForConnection!!.internalBtDevice
+    if (onboardingDeviceWaitingForConnection != null && experimentOn) {
+        val waitForConnectionDevice = onboardingDeviceWaitingForConnection!!.internalBtDevice
         if (!onboardingExperimentComplete) {
             if (!waitForConnectionDevice.isConnected) {
                 OnboardingWaitDialog(
                     deviceName = waitForConnectionDevice.name,
-                    onDismiss = { waitingForConnection = null }
+                    onDismiss = { onboardingDeviceWaitingForConnection = null }
                 )
             } else {
                 // Device already connected
-                // TODO: Play a media and then wait
+                // TODO: Move this out to a handler
                 startPrivyForegroundService(
                     context,
                     PrivyForegroundService.ACTION_PLAY_ONBOARDING_SOUND
@@ -151,12 +150,9 @@ fun PlacesAndAssetsScreen(
             }
         } else {
             Logger.i("PlacesAndAssetsScreen", "Onboarding experiment is complete")
-            waitingForConnection = null
+            onboardingDeviceWaitingForConnection = null
         }
     }
-
-    val placeTagsWithSelectedDeviceStatus =
-        bleViewModel.placeTagsWithSelectedDevicesState.collectAsState().value
     when (placeTagsWithSelectedDeviceStatus) {
         is PlaceTagsWithDevicesState.NoPlaceHasBTType -> {
             // We don't need permissions, just initialize the place cards.
@@ -176,7 +172,7 @@ fun PlacesAndAssetsScreen(
         is PlaceTagsWithDevicesState.BtNotEnabled -> {
             PlaceCards(
                 places,
-                blePermissionGranted = blePermissionGranted,
+                blePermissionGranted = true,
                 bluetoothEnabled = false,
                 bluetoothNotEnabledHandler = {
                     val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
@@ -188,18 +184,9 @@ fun PlacesAndAssetsScreen(
         is PlaceTagsWithDevicesState.BTDevicesNotFound -> {
             PlaceCards(
                 places,
-                blePermissionGranted,
+                blePermissionGranted = true,
                 bluetoothEnabled = true,
-                btDevicesRescanHandler = {
-                    coroutineScope.launch {
-                        Logger.v(
-                            "PlacesAndAssetsScreen",
-                            "Loading Bonded devices from rescan handler"
-                        )
-                        // This is on the UI thread main thread.
-                        bleViewModel.loadBondedBleDevices()
-                    }
-                },
+                btDevicesRescanHandler = btDevicesRescanHandler
             )
         }
 
@@ -209,26 +196,27 @@ fun PlacesAndAssetsScreen(
                 placeTagsWithSelectedDeviceStatus.placeTagsWithDevices.associate {
                     it.first.id to it.second
                 }
-            val bleDeviceStatus = bleViewModel.bleDevices.collectAsState().value
 
-            // Update the state of
-            if (!onboardingExperimentComplete && experimentOn && bleDeviceStatus is BTDevicesStatus.BTDevicesFound) {
+            Logger.v(
+                "PlacesAndAssetsScreen",
+                "selectedDevices: ${selectedDevices}}"
+            )
+            if (!onboardingExperimentComplete && experimentOn && btDeviceStatus is BTDevicesStatus.BTDevicesFound) {
                 val device =
-                    bleDeviceStatus.devices.find { it == waitingForConnection?.internalBtDevice }
+                    btDeviceStatus.devices.find { it == onboardingDeviceWaitingForConnection?.internalBtDevice }
 
-                if (device != null && waitingForConnection?.internalBtDevice?.isConnected != device.isConnected) {
+                if (device != null && onboardingDeviceWaitingForConnection?.internalBtDevice?.isConnected != device.isConnected) {
                     // At this point the user is in the onboarding flow and selected the device. The onboarding
                     // dialogue is showing. The user has connected the device or connected/disconnected the device
                     // connection state of device represented by waitingForConnection has changed.
-                    waitingForConnection =
+                    onboardingDeviceWaitingForConnection =
                         OnboardingInternalBTDeviceTracker(device, System.currentTimeMillis())
                 }
-
             }
 
             val bleDevices =
-                if (bleDeviceStatus is BTDevicesStatus.BTDevicesFound) {
-                    bleDeviceStatus.devices
+                if (btDeviceStatus is BTDevicesStatus.BTDevicesFound) {
+                    btDeviceStatus.devices
                 } else {
                     Logger.w(
                         "PlacesAndAssetsScreen",
@@ -239,7 +227,7 @@ fun PlacesAndAssetsScreen(
 
             val onDeviceSelected = { placeTag: PlaceTag, selectedDevice: InternalBtDevice ->
                 // Also inserts device selection in the place tag in the database.
-                bleViewModel.selectDeviceForPlaceTag(placeTag, selectedDevice.address)
+                onBTDeviceSelectedHandler(placeTag, selectedDevice)
 
                 if (!onboardingExperimentComplete && experimentOn && placeTag.isTypeBLE()) {
                     if (!selectedDevice.hasHighDefinitionAudioCapabilities) {
@@ -256,8 +244,8 @@ fun PlacesAndAssetsScreen(
                         val selectedDeviceInModel = bleDevices?.firstOrNull { it == selectedDevice }
                         if (selectedDeviceInModel != null) {
                             val hasSelectedDeviceChangedState =
-                                (waitingForConnection?.internalBtDevice != selectedDevice) || (waitingForConnection?.internalBtDevice?.isConnected != selectedDevice.isConnected)
-                            if (waitingForConnection == null || hasSelectedDeviceChangedState) {
+                                (onboardingDeviceWaitingForConnection?.internalBtDevice != selectedDevice) || (onboardingDeviceWaitingForConnection?.internalBtDevice?.isConnected != selectedDevice.isConnected)
+                            if (onboardingDeviceWaitingForConnection == null || hasSelectedDeviceChangedState) {
                                 // We have not selected this device before and it has a different connection state
                                 Logger.v(
                                     "PlacesAndAssetsScreen",
@@ -265,7 +253,8 @@ fun PlacesAndAssetsScreen(
                                 )
                                 // TODO: If we make onboarding permanent we should save the device chosen for onboarding
                                 // this would not make this flow trigger repeatedly
-                                waitingForConnection = OnboardingInternalBTDeviceTracker(
+                                onboardingDeviceWaitingForConnection =
+                                    OnboardingInternalBTDeviceTracker(
                                     selectedDeviceInModel,
                                     System.currentTimeMillis()
                                 )
@@ -291,12 +280,16 @@ fun PlacesAndAssetsScreen(
             }
             PlaceCards(
                 places,
-                blePermissionGranted,
+                blePermissionGranted = true,
                 bleDevices = bleDevices,
                 bluetoothEnabled = true,
                 selectedDevices = selectedDevices,
                 onDeviceSelectedForPlaceTag = onDeviceSelected
             )
+        }
+
+        null -> {
+            PlaceCards(places)
         }
     }
 }

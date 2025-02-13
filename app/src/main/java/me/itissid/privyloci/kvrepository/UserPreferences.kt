@@ -17,6 +17,7 @@ import javax.inject.Singleton
 // Per SO Answer: https://arc.net/l/quote/kebwdeqe
 private val Context.privyLociUserPreferencesDataStore by preferencesDataStore("user_preferences")
 
+private const val TAG = "UserPreference"
 @Singleton
 class UserPreferences @Inject constructor(
     @ApplicationContext context: Context
@@ -25,13 +26,13 @@ class UserPreferences @Inject constructor(
     private val datastoreLoggingTag: String = "UserPreferences"
 
     val userPausedLocationCollection =
-        dataStore.readWrapper(pausedLocationCollectionKey, false, "UserPreferences")
+        dataStore.readWrapper(pausedLocationCollectionKey, false, datastoreLoggingTag)
 
     val userVisitedPermissionLauncher =
-        dataStore.readWrapper(visitedPermissionLauncher, false, "UserPreferences")
+        dataStore.readWrapper(visitedPermissionLauncher, false, datastoreLoggingTag)
 
     val userVisitedBlePermissionLauncher =
-        dataStore.readWrapper(visitedBlePermissionLauncher, false, "UserPreferences")
+        dataStore.readWrapper(visitedBlePermissionLauncher, false, datastoreLoggingTag)
 
 
     companion object {
@@ -58,16 +59,17 @@ class UserPreferences @Inject constructor(
 
         suspend fun <T> DataStore<Preferences>.editKey(
             key: Preferences.Key<T>,
-            value: T
+            value: T,
+            loggerTag: String
         ): Result<Preferences> {
             return runCatching {
                 this.edit { preferences ->
-                    Logger.v("UserPreferences", "Editing $key: $value")
+                    Logger.v(loggerTag, "Editing $key: $value")
                     preferences[key] = value
                 }
             }.onFailure { exception ->
                 Logger.e(
-                    "UserPreferences",
+                    loggerTag,
                     "Error editing preferences for $key for preference store, Message: `${exception.message}`",
                     exception,
 
@@ -85,20 +87,20 @@ class UserPreferences @Inject constructor(
 
     suspend fun setUserVisitedPermissionLauncher(dismissed: Boolean): Result<Preferences> {
         return dataStore.editKey(
-            visitedPermissionLauncher, dismissed
+            visitedPermissionLauncher, dismissed, TAG
         )
     }
 
     suspend fun setUserPausedLocationCollection(paused: Boolean): Result<Preferences> {
         return dataStore.editKey(
-            pausedLocationCollectionKey, paused
+            pausedLocationCollectionKey, paused, TAG
         )
     }
 
     // BT Related pregs
     suspend fun setUserVisitedBlePermissionLauncher(visited: Boolean): Result<Preferences> {
         return dataStore.editKey(
-            visitedBlePermissionLauncher, visited
+            visitedBlePermissionLauncher, visited, TAG
         )
     }
 

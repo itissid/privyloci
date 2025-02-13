@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import me.itissid.privyloci.datamodels.AppContainer
 import me.itissid.privyloci.datamodels.Subscription
 import me.itissid.privyloci.datamodels.displayName
+import me.itissid.privyloci.viewmodels.LocationPermissionState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,7 +34,7 @@ fun AppCard(
     isExpanded: Boolean,
     onMenuClick: () -> Unit,
     onCardClick: () -> Unit,
-    locationPermissionGranted: Boolean,
+    locationPermissionState: LocationPermissionState?,
     onLocationIconClick: () -> Unit
 ) {
     Card(
@@ -76,7 +77,12 @@ fun AppCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 Column {
                     appContainer.subscriptions.forEach { subscription ->
-                        SubscriptionCard(subscription = subscription, locationPermissionGranted, onLocationIconClick)
+
+                        SubscriptionCard(
+                            subscription = subscription,
+                            locationPermissionState,
+                            onLocationIconClick
+                        )
                     }
                 }
             }
@@ -87,10 +93,11 @@ fun AppCard(
 @Composable
 fun SubscriptionCard(
     subscription: Subscription,
-    locationPermissionGranted: Boolean,
+    locationPermissionState: LocationPermissionState?,
     onLocationIconClick: () -> Unit
 ) {
-
+    val locationPermissionIsInGoodState =
+        locationPermissionState == null || (locationPermissionState.permissionsGranted && !locationPermissionState.isPaused)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -105,7 +112,7 @@ fun SubscriptionCard(
                     text = "${subscription.placeTagName}(id: ${subscription.placeTagId})",
                     style = MaterialTheme.typography.headlineSmall
                 )
-                if (subscription.isTypeLocation() && !locationPermissionGranted) {
+                if (subscription.isTypeLocation() && !locationPermissionIsInGoodState) {
                     IconButton(onClick = onLocationIconClick) {
                         AdaptiveIcon(locationPermissionGranted = false)
                     }

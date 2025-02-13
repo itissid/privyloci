@@ -5,6 +5,11 @@ plugins {
     id 'com.google.devtools.ksp'
     id 'dagger.hilt.android.plugin'
 }
+def props = new Properties()
+file('../local.properties').withInputStream { stream ->
+    props.load(stream)
+}
+def maptiler_api_key = props.getProperty('MAPTILER_API_KEY')
 
 android {
     namespace 'me.itissid.privyloci'
@@ -30,6 +35,7 @@ android {
             // TODO: Remove this once we get the firebase config together,
             buildConfigField "boolean", "ONBOARDING_HEADPHONES", "true"
             buildConfigField "boolean", "ONBOARDING_RESET", "true"
+            buildConfigField "String", "MAPTILER_API_KEY", "\"$maptiler_api_key\""
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         release {
@@ -40,9 +46,9 @@ android {
             buildConfigField "boolean", "LOAD_MOCK_DATA", "false"
             buildConfigField "boolean", "ONBOARDING_HEADPHONES", "false"
             buildConfigField "boolean", "ONBOARDING_RESET", "false"
+            buildConfigField "String", "MAPTILER_API_KEY", "\"$maptiler_api_key\""
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.debug
-
         }
         proguardTest {
             initWith debug
@@ -63,6 +69,7 @@ android {
         jvmTarget = '17'
     }
     buildFeatures {
+        buildConfig = true
         viewBinding true
         compose  true
     }
@@ -90,6 +97,9 @@ dependencies {
     implementation 'androidx.compose.animation:animation'
     implementation 'androidx.compose.runtime:runtime'
     implementation 'androidx.compose.runtime:runtime-livedata'
+    implementation 'org.maplibre.gl:android-sdk:11.8.0'
+    implementation 'org.maplibre.gl:android-plugin-annotation-v9:3.0.2'
+
 
     // HILT related dependencies
     implementation 'androidx.hilt:hilt-navigation-compose:1.2.0'

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import me.itissid.privyloci.kvrepository.UserPreferences.Companion.editKey
 import me.itissid.privyloci.kvrepository.UserPreferences.Companion.readWrapper
@@ -16,7 +17,7 @@ import javax.inject.Singleton
 
 private val Context.privyLociRepository by preferencesDataStore("privy_loci_repo")
 private const val keyIsServiceRunning = "is_service_running"
-
+private const val TAG = "Repository"
 // Random preferences needed for the app that need to stay for longer periods of time.
 @Singleton
 class Repository @Inject constructor(@ApplicationContext context: Context) {
@@ -35,31 +36,30 @@ class Repository @Inject constructor(@ApplicationContext context: Context) {
     // We should make all these functions accept lambdas that make them log with a tag and message
     suspend fun setFGPermissionRationaleDismissed(dismissed: Boolean) {
         dataStore.editKey(
-            fgPerrmissionRationaleDismissedKey, dismissed
+            fgPerrmissionRationaleDismissedKey, dismissed, TAG
         )
     }
 
     suspend fun setFGPersistentNotificationDismissed(dismissed: Boolean) {
         dataStore.editKey(
-            fgPersistentNotificationDismissedKey, dismissed
+            fgPersistentNotificationDismissedKey, dismissed, TAG
         )
     }
 
     suspend fun setReactivateFGRationaleDismissed(dismissed: Boolean) {
         dataStore.editKey(
-            reactivateFGRationaleDismissedKey, dismissed
+            reactivateFGRationaleDismissedKey, dismissed, TAG
         )
     }
 
-    val isServiceRunning: Flow<Boolean> = dataStore.data
-        .map { preferences ->
-            preferences[isServiceRunningKey] ?: false
-        }
+    val isServiceRunning: Flow<Boolean> = dataStore.readWrapper(
+        isServiceRunningKey, false, "Repository"
+    )
 
     suspend fun setServiceRunning(isRunning: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[isServiceRunningKey] = isRunning
-        }
+        dataStore.editKey(
+            isServiceRunningKey, isRunning, TAG
+        )
     }
 
     private companion object {

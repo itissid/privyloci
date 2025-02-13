@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +21,34 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
+import me.itissid.privyloci.viewmodels.LocationPermissionRationale
+
+@Composable
+fun LocationPermissionRationaleDialogWrapper(rationale: LocationPermissionRationale) {
+    LocationPermissionRationaleDialogue(
+        onDismiss = rationale.onDismiss,
+        onConfirm = rationale.onConfirm,
+        rationale.rationaleText,
+        proceedText = rationale.proceedButtonText,
+        dismissText = rationale.dismissButtonText
+    )
+    AlertDialog(
+        onDismissRequest = { rationale.onDismiss() },
+        confirmButton = {
+            TextButton(onClick = { rationale.onConfirm() }) {
+                Text(rationale.proceedButtonText)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { rationale.onDismiss() }) {
+                Text(rationale.dismissButtonText)
+            }
+        },
+        text = {
+            Text(rationale.rationaleText)
+        }
+    )
+}
 
 @Composable
 fun LocationPermissionRationaleDialogue(

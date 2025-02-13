@@ -48,6 +48,8 @@ import me.itissid.privyloci.datamodels.tagString
 import me.itissid.privyloci.ui.theme.PrivyLociTheme
 import me.itissid.privyloci.util.Logger
 
+private const val TAG: String = "PlaceCard"
+
 @SuppressLint("MissingPermission")
 @Composable
 fun PlaceCard(
@@ -82,50 +84,51 @@ fun PlaceCard(
                 )
                 if (placeTag.isTypeBLE()) {
                     if (!blePermissionGranted) {// if ble permissions are not granted show the icon else nothing
-                    IconButton(onClick = { noPermissionOnClick.invoke() }) {
-                        AdaptiveIconWrapper(
-                            permissionGranted = false,
-                            iconResource = IconResource.BLEIcon
-                        )
-                    } // N2S: The triple dot could show the BLE turned on if its not.
+                        IconButton(onClick = { noPermissionOnClick.invoke() }) {
+                            AdaptiveIconWrapper(
+                                permissionGranted = false,
+                                iconResource = IconResource.BLEIcon
+                            )
+                        } // N2S: The triple dot could show the BLE turned on if its not.
                     } else {  // only when permission is not granted for BT devices
-                    IconButton(onClick = { showDialog = !showDialog }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Options")
-                    }
-                    if (showDialog) {
-                        if (!bluetoothEnabled) {
-                            BluetoothEnablePrompt(
-                                assetName = placeTag,
-                                onDismiss = { showDialog = false }
-                            ) {
-                                bluetoothNotEnabledHandler.invoke()
-                                showDialog = false
-                            }
-                        } else {
-                            if (btDevices.isNullOrEmpty()) {
-                                ScanForBTDevices(
-                                    placeTag,
-                                    onDismiss = { showDialog = false },
-                                    onConfirm = {
-                                        btDevicesRescanHandler()
-                                        showDialog = false
-                                    }
-                                )
+                        IconButton(onClick = { showDialog = !showDialog }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                        }
+                        if (showDialog) {
+                            if (!bluetoothEnabled) {
+                                BluetoothEnablePrompt(
+                                    assetName = placeTag,
+                                    onDismiss = { showDialog = false }
+                                ) {
+                                    bluetoothNotEnabledHandler.invoke()
+                                    showDialog = false
+                                }
                             } else {
-                                LazyRadioDialogue(
-                                    "Select a device for ${placeTag.name}",
-                                    btDevices,
-                                    preSelectedDevice,
-                                    { showDialog = false },
-                                    {
-                                        // TODO: BUGFIX: We need to retrieve the devices saved in the DB and show them as selected and make sure it is actually
-                                        // in the list of btDevices.
-                                        // N2S: We might also reserve selectedDevice with this  placeTag in memory, should that device-placeTag relation be exclusive.
-                                        // on recompose we filter btDevices or gray out previously selected device-placeTag pairs.
-                                        onDeviceSelectedForPlaceTag()
-                                        showDialog = false
-                                    },
-                                )
+                                if (btDevices.isNullOrEmpty()) {
+                                    ScanForBTDevices(
+                                        placeTag,
+                                        onDismiss = { showDialog = false },
+                                        onConfirm = {
+                                            btDevicesRescanHandler()
+                                            showDialog = false
+                                        }
+                                    )
+                                } else {
+                                    LazyRadioDialogue(
+                                        "Select a device for ${placeTag.name}",
+                                        btDevices,
+                                        preSelectedDevice,
+                                        { showDialog = false },
+                                        {
+                                            // TODO: BUGFIX: We need to retrieve the devices saved in the DB and show them as selected and make sure it is actually
+                                            // in the list of btDevices.
+                                            // N2S: We might also reserve selectedDevice with this  placeTag in memory, should that device-placeTag relation be exclusive.
+                                            // on recompose we filter btDevices or gray out previously selected device-placeTag pairs.
+                                            onDeviceSelectedForPlaceTag()
+                                            showDialog = false
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -283,6 +286,7 @@ fun AlertDialogWrapper(
         onDismissRequest = { onDismiss() },
     )
 }
+
 @Preview(
     name = "Night mode",
     showBackground = true,

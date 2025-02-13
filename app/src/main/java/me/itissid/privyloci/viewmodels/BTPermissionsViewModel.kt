@@ -39,7 +39,8 @@ sealed class BlePermissionEvent {
     // ... add more events as needed
 }
 
-// Should not be persistent like preferences
+// Should not be persistent like preferences. User purely for communication between BlePermissionViewModel and
+// BleDevicesViewModel. The actual permissions are updated by BlePermissionViewModel as a single source of truth.
 @Singleton
 class BTPermissionRepository @Inject constructor() {
     private val _bluetoothPermissionsGranted = MutableStateFlow(false)
@@ -50,7 +51,7 @@ class BTPermissionRepository @Inject constructor() {
 }
 
 @HiltViewModel
-class BlePermissionViewModel @Inject constructor(
+class BTPermissionViewModel @Inject constructor(
     application: Application,
     private val userPreferences: UserPreferences,
     private val btPermissionRepository: BTPermissionRepository
